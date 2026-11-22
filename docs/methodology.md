@@ -1,0 +1,30 @@
+# Methodology
+
+The dashboard compares countries on separate indicators in their original units. It uses Eurostat’s Statistics API for the dashboard snapshot and Eurostat’s Data Browser TSV download format to cross-check published observations. The dashboard records each API query and its source timestamp alongside the values and flags.
+
+| View | Eurostat dataset and exact selection |
+| --- | --- |
+| Take-home pay | [earn_nt_net](https://ec.europa.eu/eurostat/databrowser/view/earn_nt_net/default/table?lang=en). Annual, `estruct=NET`, `ecase=P1_NCH_AW100`, `currency=EUR` or `PPS`. A modelled, single worker without children at 100% of the country’s average wage. Eurostat deducts income tax and employee social contributions and includes family allowances where applicable. The PPS series is taken directly from this dataset. |
+| Household spending | [nama_10_cp18](https://ec.europa.eu/eurostat/databrowser/view/nama_10_cp18/default/table?lang=en). Annual, `unit=CP_MEUR`, `coicop18=TOTAL` and divisions `CP01` through `CP13`. Data use current prices in million euros. The domestic basis includes spending by visitors and excludes residents’ spending abroad. `CP04` includes the rental value imputed to owner-occupied housing. |
+| Price levels | [prc_ppp_ind_1](https://ec.europa.eu/eurostat/databrowser/view/prc_ppp_ind_1/default/table?lang=en). Annual, `indic_ppp=PLI_EU27_2020`. `E011` household final consumption expenditure, `A010101` food, `A0104` housing, water, electricity, gas and other fuels, `A010405` electricity, gas and other fuels, and `A0107` transport. A value of 120 is 20% above the EU-27 benchmark for that category and year. |
+| Household income | [ilc_di03](https://ec.europa.eu/eurostat/databrowser/view/ilc_di03/default/table?lang=en). Annual, `age=TOTAL`, `sex=T`, `statinfo=MED_EI`, `unit=PPS`. Disposable household income is adjusted for household size and composition before taking the median across people. Income generally refers to the calendar year before the survey year. |
+| Inflation | [prc_hicp_minr](https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en). Monthly, `unit=RCH_A`, `coicop18=TOTAL` under ECOICOP version 2. Each observation gives the all-items year-over-year rate for the selected month. |
+| Occupations | [earn_ses_hourly](https://ec.europa.eu/eurostat/databrowser/view/earn_ses_hourly/default/table?lang=en). `indic_se=MED_E_EUR`, `nace_r2=B-S_X_O`, `worktime=TOTAL`, `age=TOTAL`, `sex=T`, with broad ISCO-08 groups `OC0` and `OC1` through `OC9`. The figures are median gross hourly earnings in euros. The filters cover full- and part-time workers in industry, construction and services excluding public administration, defence and compulsory social security. The mandatory survey coverage starts at business units with 10 employees. |
+
+## Countries, coverage and flags
+
+The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.
+
+Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`. The API has also been observed to return `|C` for confidential occupation values.
+
+## Spending calculations
+
+A category’s spending share is `100 × expenditure for the category ÷ published total expenditure`, using the same country, year and unit. All 13 top-level divisions must be present to display a 100% stack. Their sum must match the official total within €0.7 million. This allows up to €0.05 million of rounding for each of the 13 divisions and the total, based on the €0.1 million precision visible in the source. Partial or unreconciled shares appear in the table with their original published denominator.
+
+## Initial verification
+
+The first snapshot was fetched on 22 November 2026. The latest period available for all 27 EU countries is 2025 for pay, overall price levels and household income, and October 2026 for inflation. The spending source includes 2025 for 26 EU members, so a full EU-27 comparison uses 2024. For the occupation groups with broad coverage, the 2018 wave is the latest shared wave in this dataset and filter combination. The 2022 subset contains published values for Greece and lacks equivalent coverage across the rest of the EU. Group-level coverage is shown when choosing an occupation.
+
+The [cross-check record](crosscheck.tsv) contains 88 value and flag comparisons across the six datasets, including Greece, Germany, the Netherlands, France and the EU-27. Greece’s 2024 housing, water, electricity, gas and other fuels share is €38,270.1 million divided by €178,902.8 million, or **21.39%**. The app displays one decimal place and the CSV contains the calculated share at full precision.
+
+Additional official references cover the [Statistics API](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-detailed-guidelines/api-statistics), [Data Browser TSV export links](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-faq/excel-power-query), [national-accounts spending](https://ec.europa.eu/eurostat/cache/metadata/EN/nama_10_cp18_esms_el.htm), [EU-SILC income](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_sieusilc.htm), and the [Structure of Earnings Survey](https://ec.europa.eu/eurostat/en/web/labour-market/information-data/earnings).

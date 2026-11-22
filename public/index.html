@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Compare take-home pay, household income, spending and consumer prices across Europe using Eurostat data.">
+  <title>European Living Standards Dashboard</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to dashboard</a>
+  <header class="top">
+    <div class="shell mast">
+      <a class="brand" href="#pay"><span aria-hidden="true" class="mark"><i></i><i></i><i></i></span><span>European Living Standards<small>Dashboard</small></span></a>
+      <div class="top-right"><span><i class="status-dot"></i> Official Eurostat data</span><a href="#method">Methodology</a></div>
+    </div>
+  </header>
+  <main id="main" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="hero-scope"><span></span> Europe at a glance</p>
+        <h1 id="hero-title">What does a salary<br class="desktop"> buy across Europe?</h1>
+        <p>Compare what people take home, what they spend and how far their money goes across European countries.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="rings"><i></i><i></i><i></i><i></i></div>
+        <div class="columns"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="star">✦</div>
+      </div>
+      <div class="hero-meta"><span id="last-refresh">Loading Eurostat snapshot…</span></div>
+    </section>
+    <nav class="tabs" aria-label="Dashboard views">
+      <a href="#pay" data-view="pay">Take-home pay</a>
+      <a href="#compare" data-view="compare">Compare countries</a>
+      <a href="#spend" data-view="spend">Spending</a>
+      <a href="#price" data-view="price">Price levels</a>
+      <a href="#income" data-view="income">Household income</a>
+      <a href="#inflation" data-view="inflation">Inflation</a>
+      <a href="#occupation" data-view="occupation">Occupations</a>
+    </nav>
+    <div id="dashboard" aria-busy="true"><p class="panel waiting" role="status">Loading country comparisons…</p></div>
+  </main>
+  <footer class="shell footer"><span>European Living Standards Dashboard</span><a href="https://ec.europa.eu/eurostat/">Data from Eurostat</a></footer>
+</body>
+</html>

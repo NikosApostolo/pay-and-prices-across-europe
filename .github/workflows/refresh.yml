@@ -1,0 +1,34 @@
+name: Refresh Eurostat snapshot
+
+on:
+  schedule:
+    - cron: '37 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eurostat-snapshot
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run refresh
+      - run: npm test
+      - name: Save validated snapshot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/snapshot.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh Eurostat data snapshot'
+            git push
+          fi
