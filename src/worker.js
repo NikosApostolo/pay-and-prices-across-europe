@@ -82,6 +82,17 @@ export function createWorker(assets) {
       const path = new URL(request.url).pathname;
       const seed = assets['/snapshot.json'];
       if (request.method === 'POST' && path === '/mcp') return mcp(request,env.BUCKET,seed);
+      // Sites dispatch authorizes this route for the owner or a Site service credential.
+      // Deploy the refresh writer on an owner-only Site.
+      if (request.method === 'POST' && path === '/refresh') {
+        const type = request.headers.get('Content-Type')?.split(';')[0];
+        if (type !== 'application/json') return json({error:'JSON content required'},415);
+        try {
+          return json(await publishSnapshot(env.BUCKET,seed));
+        } catch (failure) {
+          return json({error:failure.message},503);
+        }
+      }
       if (!['GET','HEAD'].includes(request.method)) return new Response('Method not allowed',{status:405});
       if (path === '/snapshot.json') {
         try {
