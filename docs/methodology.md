@@ -11,6 +11,17 @@ The dashboard compares countries on separate indicators in their original units.
 | Inflation | [prc_hicp_minr](https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en). Monthly, `unit=RCH_A`, `coicop18=TOTAL` under ECOICOP version 2. Each observation gives the all-items year-over-year rate for the selected month. |
 | Occupations | [earn_ses_hourly](https://ec.europa.eu/eurostat/databrowser/view/earn_ses_hourly/default/table?lang=en). `indic_se=MED_E_EUR`, `nace_r2=B-S_X_O`, `worktime=TOTAL`, `age=TOTAL`, `sex=T`, with broad ISCO-08 groups `OC0` and `OC1` through `OC9`. The figures are median gross hourly earnings in euros. The filters cover full- and part-time workers in industry, construction and services excluding public administration, defence and compulsory social security. The mandatory survey coverage starts at business units with 10 employees. |
 
+## Exact Eurostat API queries
+
+These are the requests used to build and refresh the snapshot. The repeated filters select each listed unit or category in a single request.
+
+- [earn_nt_net · Annual take-home pay](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_nt_net?lang=EN&freq=A&currency=EUR&currency=PPS&estruct=NET&ecase=P1_NCH_AW100)
+- [nama_10_cp18 · How households spend](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_cp18?lang=EN&freq=A&unit=CP_MEUR&coicop18=TOTAL&coicop18=CP01&coicop18=CP02&coicop18=CP03&coicop18=CP04&coicop18=CP05&coicop18=CP06&coicop18=CP07&coicop18=CP08&coicop18=CP09&coicop18=CP10&coicop18=CP11&coicop18=CP12&coicop18=CP13)
+- [prc_ppp_ind_1 · Consumer price levels](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_ppp_ind_1?lang=EN&freq=A&indic_ppp=PLI_EU27_2020&ppp_cat18=E011&ppp_cat18=A010101&ppp_cat18=A0104&ppp_cat18=A010405&ppp_cat18=A0107)
+- [ilc_di03 · Median disposable income](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_di03?lang=EN&freq=A&age=TOTAL&sex=T&statinfo=MED_EI&unit=PPS)
+- [prc_hicp_minr · Inflation over time](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?lang=EN&freq=M&unit=RCH_A&coicop18=TOTAL)
+- [earn_ses_hourly · Hourly earnings by occupation](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_ses_hourly?lang=EN&freq=A&nace_r2=B-S_X_O&isco08=OC1&isco08=OC2&isco08=OC3&isco08=OC4&isco08=OC5&isco08=OC6&isco08=OC7&isco08=OC8&isco08=OC9&isco08=OC0&worktime=TOTAL&age=TOTAL&sex=T&indic_se=MED_E_EUR)
+
 ## Countries, coverage and flags
 
 The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.
@@ -21,10 +32,18 @@ Each comparison defaults to the newest period with data for every country in sco
 
 A category’s spending share is `100 × expenditure for the category ÷ published total expenditure`, using the same country, year and unit. All 13 top-level divisions must be present to display a 100% stack. Their sum must match the official total within €0.7 million. This allows up to €0.05 million of rounding for each of the 13 divisions and the total, based on the €0.1 million precision visible in the source. Partial or unreconciled shares appear in the table with their original published denominator.
 
+### Worked example
+
+Eurostat published €38,270.1 million in spending on housing, water, electricity, gas and other fuels in Greece in 2024. It published €178,902.8 million in total household spending for the same country, year, and unit. The calculation is **100 × 38,270.1 ÷ 178,902.8 = 21.39%**. The chart shows **21.4%** and the CSV retains the calculated precision. The housing category includes an estimate of the rent owners would pay for their own homes.
+
+## Refreshes and revisions
+
+The daily refresh requests the complete filtered history so it can pick up new periods and changes Eurostat makes to older observations. After validating the filters, units, data and coverage, the app publishes the new snapshot as one update. A failed refresh leaves the last successful snapshot in place. The chart’s observation period, Eurostat’s source update time, and the dashboard’s last successful refresh are shown separately.
+
 ## Initial verification
 
 The first snapshot was fetched on 22 November 2026. The latest period available for all 27 EU countries is 2025 for pay, overall price levels and household income, and October 2026 for inflation. The spending source includes 2025 for 26 EU members, so a full EU-27 comparison uses 2024. For the occupation groups with broad coverage, the 2018 wave is the latest shared wave in this dataset and filter combination. The 2022 subset contains published values for Greece and lacks equivalent coverage across the rest of the EU. Group-level coverage is shown when choosing an occupation.
 
-The [cross-check record](crosscheck.tsv) contains 88 value and flag comparisons across the six datasets, including Greece, Germany, the Netherlands, France and the EU-27. Greece’s 2024 housing, water, electricity, gas and other fuels share is €38,270.1 million divided by €178,902.8 million, or **21.39%**. The app displays one decimal place and the CSV contains the calculated share at full precision.
+The [cross-check record](crosscheck.tsv) contains 88 value and flag comparisons across the six datasets, including Greece, Germany, the Netherlands, France and the EU-27.
 
 Additional official references cover the [Statistics API](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-detailed-guidelines/api-statistics), [Data Browser TSV export links](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-faq/excel-power-query), [national-accounts spending](https://ec.europa.eu/eurostat/cache/metadata/EN/nama_10_cp18_esms_el.htm), [EU-SILC income](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_sieusilc.htm), and the [Structure of Earnings Survey](https://ec.europa.eu/eurostat/en/web/labour-market/information-data/earnings).

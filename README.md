@@ -2,8 +2,10 @@
 
 **What does a salary buy across Europe?** Explore official Eurostat figures for take-home pay, purchasing power, household spending, price levels, median disposable income, inflation and gross hourly earnings by occupation. The dashboard works with country selections and has no personal inputs.
 
+**[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and a worked spending example.
+
 - Switch between EUR and Eurostat’s published PPS values to see how the annual take-home pay ranking changes.
-- Compare up to four countries. Each indicator uses its own latest shared observation period.
+- Add countries directly from the results table and compare up to four side by side. Each indicator uses its own latest shared observation period.
 - Explore what households spend, how prices compare with the EU-27 benchmark, and what has happened to inflation over time.
 - Sort and filter tables, download the current comparison as CSV, or open the source dataset from each view.
 
