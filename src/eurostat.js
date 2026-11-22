@@ -58,7 +58,7 @@ export function decode(payload, definition) {
     if (!Object.hasOwn(countries, geo)) continue;
     const number = Number.isFinite(raw) && !confidential(flag) ? raw : null;
     if (number !== null) {
-      insist(dataset === 'prc_hicp_minr' ? number >= -100 : number >= 0,
+      insist(dataset === 'prc_hicp_minr' ? number >= -100 : dataset === 'prc_hicp_ainr' ? number > 0 : number >= 0,
         dataset + ' has an out-of-range value');
     }
     const observations = series[coordinate[selector]];
@@ -82,14 +82,16 @@ export function validate(snapshot, previous) {
     for (const [seriesKey, countries] of Object.entries(result.series)) {
       const oldCount = publishedCount(previous?.indicators[key]?.series[seriesKey]);
       const count = publishedCount(countries);
-      if (key !== 'occupation' || oldCount) {
-        insist(count > 0 && count >= 0.8 * oldCount, definition.dataset + ' unexpectedly lost coverage for ' + seriesKey);
+      insist(count > 0 && count >= 0.8 * oldCount, definition.dataset + ' unexpectedly lost coverage for ' + seriesKey);
+      if (key === 'income') {
+        insist(eu.filter(geo => publishedCount({[geo]:countries[geo]})).length >= 24,
+          definition.dataset + ' has insufficient EU coverage for ' + seriesKey);
       }
     }
 
     const requiredSeries = Object.values(result.series)[0];
     const covered = eu.filter(geo => publishedCount({ [geo]: requiredSeries[geo] })).length;
-    insist(covered >= (key === 'occupation' ? 15 : 24), definition.dataset + ' has insufficient EU coverage');
+    insist(covered >= 24, definition.dataset + ' has insufficient EU coverage');
   }
 
   const price = snapshot.indicators.price.series;

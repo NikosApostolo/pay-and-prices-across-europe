@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { definitions } from '../public/definitions.js';
-import { observation, spendingRecord } from '../public/model.js';
+import { incomePriceChange, observation, spendingRecord } from '../public/model.js';
 
 const snapshot = JSON.parse(await readFile(new URL('../public/snapshot.json',import.meta.url),'utf8'));
 const pairs = [
@@ -10,7 +10,8 @@ const pairs = [
   ['price','A.PLI_EU27_2020.E011+A010101+A0104+A010405+A0107.EL+DE+EU27_2020','ppp_cat18',['2024','2025']],
   ['income','A.TOTAL.T.MED_EI.PPS.EL+DE+EU27_2020','unit',['2023','2024']],
   ['inflation','M.RCH_A.TOTAL.EL+DE+EU27_2020','coicop18',['2025-10','2026-10']],
-  ['occupation','A.B-S_X_O.OC1+OC2+OC6.TOTAL.TOTAL.T.MED_E_EUR.EL+DE+NL','isco08',['2018','2022']],
+  ['income','A.TOTAL.T.MED_EI.NAC.EL+RO+SK','unit',['2024','2025']],
+  ['annualPrice','A.INX_A_AVG.TOTAL.EL+RO+SK','coicop18',['2023','2024']],
 ];
 const endpoints = 'https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/';
 async function check([key, filters, selector, periods]) {
@@ -46,9 +47,14 @@ async function check([key, filters, selector, periods]) {
 const results = await Promise.all(pairs.map(check));
 for (const { dataset, url, results:rows } of results) {
   console.log(dataset, rows.length + ' cells verified', url);
-  for (const row of rows) console.log(row.join('\t'));
+  for (const row of rows) console.log(row.join('\t').trimEnd());
 }
 const { categories, total } = spendingRecord(snapshot.indicators.spend,'EL','2024');
 const housing = categories.find(category => category.code === 'CP04');
 assert.equal(housing.share,100 * housing.expenditure[0] / total[0]);
 console.log('Greece 2024 housing share:',housing.expenditure[0],'/ ',total[0],'× 100 =',housing.share);
+
+for (const geo of ['EL','RO','SK']) {
+  const row = incomePriceChange(snapshot.indicators,geo,'2024');
+  console.log('Income vs prices 2024',geo,JSON.stringify(row));
+}

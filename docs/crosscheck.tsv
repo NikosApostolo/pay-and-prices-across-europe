@@ -1,95 +1,95 @@
 earn_nt_net 12 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_nt_net/A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL?format=TSV&startPeriod=2024&endPeriod=2025
 pay	EUR	DE	2024	35482.87	b
-pay	EUR	DE	2025	36534.77	
+pay	EUR	DE	2025	36534.77
 pay	EUR	EL	2024	20041.56	b
-pay	EUR	EL	2025	21498.27	
+pay	EUR	EL	2025	21498.27
 pay	EUR	NL	2024	38838.45	b
-pay	EUR	NL	2025	40793.43	
+pay	EUR	NL	2025	40793.43
 pay	PPS	DE	2024	32662.17	b
-pay	PPS	DE	2025	33630.45	
+pay	PPS	DE	2025	33630.45
 pay	PPS	EL	2024	23316.15	b
-pay	PPS	EL	2025	25010.87	
+pay	PPS	EL	2025	25010.87
 pay	PPS	NL	2024	33483.44	b
-pay	PPS	NL	2025	35168.88	
+pay	PPS	NL	2025	35168.88
 nama_10_cp18 18 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/nama_10_cp18/A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR?format=TSV&startPeriod=2023&endPeriod=2024
 spend	CP01	DE	2023	237128	p
 spend	CP01	DE	2024	257495	p
-spend	CP01	EL	2023	27114.7	
+spend	CP01	EL	2023	27114.7
 spend	CP01	EL	2024	28080.1	p
-spend	CP01	FR	2023	185063.6	
+spend	CP01	FR	2023	185063.6
 spend	CP01	FR	2024	187816.5	p
 spend	CP04	DE	2023	536427	p
 spend	CP04	DE	2024	551473	p
-spend	CP04	EL	2023	36684.9	
+spend	CP04	EL	2023	36684.9
 spend	CP04	EL	2024	38270.1	p
-spend	CP04	FR	2023	403982.6	
+spend	CP04	FR	2023	403982.6
 spend	CP04	FR	2024	423739.3	p
 spend	TOTAL	DE	2023	2161230	p
 spend	TOTAL	DE	2024	2243023	p
-spend	TOTAL	EL	2023	171268.3	
+spend	TOTAL	EL	2023	171268.3
 spend	TOTAL	EL	2024	178902.8	p
-spend	TOTAL	FR	2023	1496572.9	
+spend	TOTAL	FR	2023	1496572.9
 spend	TOTAL	FR	2024	1543501.9	p
 prc_ppp_ind_1 30 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_ppp_ind_1/A.PLI_EU27_2020.E011+A010101+A0104+A010405+A0107.EL+DE+EU27_2020?format=TSV&startPeriod=2024&endPeriod=2025
-price	A010101	DE	2024	103.7	
-price	A010101	DE	2025	102.7	
-price	A010101	EL	2024	105.5	
-price	A010101	EL	2025	104.7	
-price	A010101	EU27_2020	2024	100	
-price	A010101	EU27_2020	2025	100	
-price	A0104	DE	2024	115.8	
-price	A0104	DE	2025	113.9	
-price	A0104	EL	2024	73.5	
-price	A0104	EL	2025	76.6	
-price	A0104	EU27_2020	2024	100	
-price	A0104	EU27_2020	2025	100	
-price	A010405	DE	2024	126.4	
-price	A010405	DE	2025	122.4	
-price	A010405	EL	2024	89.4	
-price	A010405	EL	2025	89	
-price	A010405	EU27_2020	2024	100	
-price	A010405	EU27_2020	2025	100	
-price	A0107	DE	2024	109.6	
-price	A0107	DE	2025	110	
-price	A0107	EL	2024	89.7	
-price	A0107	EL	2025	89.3	
-price	A0107	EU27_2020	2024	100	
-price	A0107	EU27_2020	2025	100	
-price	E011	DE	2024	108.8	
-price	E011	DE	2025	108.3	
-price	E011	EL	2024	86.5	
-price	E011	EL	2025	87.4	
-price	E011	EU27_2020	2024	100	
-price	E011	EU27_2020	2025	100	
+price	A010101	DE	2024	103.7
+price	A010101	DE	2025	102.7
+price	A010101	EL	2024	105.5
+price	A010101	EL	2025	104.7
+price	A010101	EU27_2020	2024	100
+price	A010101	EU27_2020	2025	100
+price	A0104	DE	2024	115.8
+price	A0104	DE	2025	113.9
+price	A0104	EL	2024	73.5
+price	A0104	EL	2025	76.6
+price	A0104	EU27_2020	2024	100
+price	A0104	EU27_2020	2025	100
+price	A010405	DE	2024	126.4
+price	A010405	DE	2025	122.4
+price	A010405	EL	2024	89.4
+price	A010405	EL	2025	89
+price	A010405	EU27_2020	2024	100
+price	A010405	EU27_2020	2025	100
+price	A0107	DE	2024	109.6
+price	A0107	DE	2025	110
+price	A0107	EL	2024	89.7
+price	A0107	EL	2025	89.3
+price	A0107	EU27_2020	2024	100
+price	A0107	EU27_2020	2025	100
+price	E011	DE	2024	108.8
+price	E011	DE	2025	108.3
+price	E011	EL	2024	86.5
+price	E011	EL	2025	87.4
+price	E011	EU27_2020	2024	100
+price	E011	EU27_2020	2025	100
 ilc_di03 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/ilc_di03/A.TOTAL.T.MED_EI.PPS.EL+DE+EU27_2020?format=TSV&startPeriod=2023&endPeriod=2024
-income	PPS	DE	2023	24086	
-income	PPS	DE	2024	25192	
-income	PPS	EL	2023	11389	
-income	PPS	EL	2024	12436	
-income	PPS	EU27_2020	2023	19903	
-income	PPS	EU27_2020	2024	21245	
+income	PPS	DE	2023	24086
+income	PPS	DE	2024	25192
+income	PPS	EL	2023	11389
+income	PPS	EL	2024	12436
+income	PPS	EU27_2020	2023	19903
+income	PPS	EU27_2020	2024	21245
 prc_hicp_minr 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_minr/M.RCH_A.TOTAL.EL+DE+EU27_2020?format=TSV&startPeriod=2025-10&endPeriod=2026-10
-inflation	TOTAL	DE	2025-10	2.3	
-inflation	TOTAL	DE	2026-10	2.9	
-inflation	TOTAL	EL	2025-10	1.6	
-inflation	TOTAL	EL	2026-10	5.7	
-inflation	TOTAL	EU27_2020	2025-10	2.5	
-inflation	TOTAL	EU27_2020	2026-10	4	
-earn_ses_hourly 16 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_ses_hourly/A.B-S_X_O.OC1+OC2+OC6.TOTAL.TOTAL.T.MED_E_EUR.EL+DE+NL?format=TSV&startPeriod=2018&endPeriod=2022
-occupation	OC1	DE	2018	39.61	
-occupation	OC1	DE	2022		
-occupation	OC1	EL	2018	16	
-occupation	OC1	EL	2022		
-occupation	OC1	NL	2018	30.1	
-occupation	OC1	NL	2022		
-occupation	OC2	DE	2018	27.07	
-occupation	OC2	DE	2022		
-occupation	OC2	EL	2018	12	
-occupation	OC2	EL	2022		
-occupation	OC2	NL	2018	23.81	
-occupation	OC2	NL	2022		
-occupation	OC6	DE	2018	14.46	
-occupation	OC6	DE	2022		
-occupation	OC6	NL	2018	12.02	
-occupation	OC6	NL	2022		
+inflation	TOTAL	DE	2025-10	2.3
+inflation	TOTAL	DE	2026-10	2.9
+inflation	TOTAL	EL	2025-10	1.6
+inflation	TOTAL	EL	2026-10	5.7
+inflation	TOTAL	EU27_2020	2025-10	2.5
+inflation	TOTAL	EU27_2020	2026-10	4
+ilc_di03 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/ilc_di03/A.TOTAL.T.MED_EI.NAC.EL+RO+SK?format=TSV&startPeriod=2024&endPeriod=2025
+income	NAC	EL	2024	10850
+income	NAC	EL	2025	11700
+income	NAC	RO	2024	38769
+income	NAC	RO	2025	40725
+income	NAC	SK	2024	10171
+income	NAC	SK	2025	12990	b
+prc_hicp_ainr 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_ainr/A.INX_A_AVG.TOTAL.EL+RO+SK?format=TSV&startPeriod=2023&endPeriod=2024
+annualPrice	TOTAL	EL	2023	94.37
+annualPrice	TOTAL	EL	2024	97.19
+annualPrice	TOTAL	RO	2023	88.49
+annualPrice	TOTAL	RO	2024	93.66
+annualPrice	TOTAL	SK	2023	93
+annualPrice	TOTAL	SK	2024	95.93
 Greece 2024 housing share: 38270.1 /  178902.8 × 100 = 21.39156010973557
+Income vs prices 2024 EL {"nominal":7.834101382488479,"priceChange":2.988237787432446,"value":4.7052592598563425,"incomeFlags":["",""],"priceFlags":["",""],"incomeIssue":"","priceIssue":""}
+Income vs prices 2024 RO {"nominal":5.045268126595981,"priceChange":5.84246807548876,"value":-0.7531947840862863,"incomeFlags":["",""],"priceFlags":["",""],"incomeIssue":"","priceIssue":""}
+Income vs prices 2024 SK {"nominal":null,"priceChange":3.150537634408601,"value":null,"incomeFlags":["","b"],"priceFlags":["",""],"incomeIssue":"A break in the income series prevents comparing these years.","priceIssue":""}

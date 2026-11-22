@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { definitions, eu, spending } from '../public/definitions.js';
-import { choosePeriod, csvText, flagsLabel, observation, periodsFor, spendingRecord } from '../public/model.js';
+import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, spendingRecord } from '../public/model.js';
 import { decode, refreshSnapshot } from '../src/eurostat.js';
 import { createWorker, publishSnapshot } from '../src/worker.js';
 
@@ -127,4 +127,50 @@ test('competing refreshes preserve the winning complete snapshot', async () => {
   ]);
   assert.equal(responses.filter(result => result.published).length,1);
   assert.equal(responses[0].lastSuccessfulRefresh,responses[1].lastSuccessfulRefresh);
+});
+
+test('income and price changes use matched calendar years and ratios', () => {
+  const income = { periods:['2025','2024','2023'], series:{NAC:{EL:{2024:[100,''],2025:[105,'']}}} };
+  const annualPrice = { periods:['2025','2024','2023','2022'], series:{TOTAL:{EL:{2023:[100,''],2024:[103,''],2025:[120,'']}}} };
+  const indicators = {income,annualPrice};
+  const result = incomePriceChange(indicators,'EL','2024');
+  assert.ok(Math.abs(result.nominal - 5) < 1e-10);
+  assert.ok(Math.abs(result.priceChange - 3) < 1e-10);
+  assert.ok(Math.abs(result.value - 100 * (1.05 / 1.03 - 1)) < 1e-10);
+  assert.deepEqual(incomePriceYears(indicators),['2024','2023']);
+  income.series.NAC.EL['2025'] = [102,'p'];
+  assert.ok(incomePriceChange(indicators,'EL','2024').value < 0);
+  income.series.NAC.EL['2025'] = [102,'b'];
+  assert.equal(incomePriceChange(indicators,'EL','2024').value,null);
+  assert.equal(incomePriceChange(indicators,'DE','2024').value,null);
+  assert.match(incomePriceChange(indicators,'IE','2019').incomeIssue,/rolling period/);
+  assert.match(incomePriceChange(indicators,'UK','2018').incomeIssue,/rolling period/);
+});
+
+test('an unflagged switch from national currency units to euros blocks growth', () => {
+  const inputs = {
+    income:{series:{NAC:{LT:{2014:[16652,''],2015:[5180,'']}},EUR:{LT:{2014:[4823,''],2015:[5180,'']}}}},
+    annualPrice:{series:{TOTAL:{LT:{2013:[64.39,''],2014:[64.54,'']}}}},
+  };
+  assert.equal(incomePriceChange(inputs,'LT','2014').value,null);
+  inputs.income.series.NAC.LT['2014'] = [4823,''];
+  assert.ok(incomePriceChange(inputs,'LT','2014').value > 0);
+});
+
+test('legacy snapshots refresh without an occupation request', async () => {
+  const previous = await refreshSnapshot({fetcher:fakeFetch()});
+  delete previous.indicators.income.series.NAC;
+  delete previous.indicators.income.series.EUR;
+  delete previous.indicators.annualPrice;
+  previous.indicators.occupation = {};
+  assert.deepEqual(incomePriceYears(previous.indicators),[]);
+  const endpoints = [];
+  const updated = await refreshSnapshot({previous,fetcher:url => {
+    endpoints.push(url);
+    return fakeFetch()(url);
+  }});
+  assert.equal(updated.schema,previous.schema);
+  assert.ok(updated.indicators.annualPrice && updated.indicators.income.series.NAC);
+  assert.ok(!Object.hasOwn(updated.indicators,'occupation'));
+  assert.ok(endpoints.every(url => !url.includes('earn_ses_hourly')));
 });

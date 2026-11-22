@@ -1,5 +1,5 @@
-import { benchmark, browserLink, countries, definitions, eu, occupations, prices, spending } from './definitions.js';
-import { available, choosePeriod, csvText, flagsLabel, observation, periodsFor, spendingRecord } from './model.js';
+import { benchmark, browserLink, countries, definitions, eu, prices, spending } from './definitions.js';
+import { available, choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, spendingRecord } from './model.js';
 
 const dashboard = document.querySelector('#dashboard');
 const methodologyLink = document.querySelector('.method-link').href;
@@ -9,7 +9,6 @@ const plain = {
   income:'This is the income of the person in the middle, after taxes and benefits, with household income adjusted for how many adults and children live together.',
   spend:'Each percentage is a share of all household spending in the country, including visitors’ spending. Housing includes utilities and the estimated rent of homes people own.',
   inflation:'A value of 3% means consumer prices were 3% higher than in the same month a year earlier.',
-  occupation:'The hourly wage of the worker in the middle for the selected job group, before taxes and deductions.',
 };
 const priceOptions = { ...prices, E011:'All household purchases', A0104:'Housing and utilities', A010405:'Electricity, gas and other fuels' };
 const decimal = new Intl.NumberFormat('en', { maximumFractionDigits:2 });
@@ -18,7 +17,7 @@ const dateTime = new Intl.DateTimeFormat('en-GB', { dateStyle:'medium', timeStyl
 const colors = ['#6242a9','#198273','#cb711e','#a34276','#377dc0','#ad583e','#7e8e35','#8868c1','#ca5070','#8c6a3a','#4e6c9f','#558b9d','#9e5ab4'];
 const allCountries = Object.keys(countries).filter(geo => geo !== benchmark);
 const state = {
-  view:'pay', currency:'EUR', price:'E011', occupation:'OC2', scope:'eu',
+  view:'pay', currency:'EUR', price:'E011', scope:'eu', growthScope:'eu',
   picks:['EL','DE'], periods:{}, sort:{}, search:'', inspected:{}, spendCategory:'CP04',
 };
 let snapshot;
@@ -30,12 +29,11 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
 const month = value => new Intl.DateTimeFormat('en', { month:'short', year:'numeric', timeZone:'UTC' })
   .format(new Date(value + '-01T00:00:00Z'));
 const periodText = value => value ? (value.includes('-') ? month(value) : value) : 'Unavailable';
-const unitNames = { EUR:'EUR per year', PPS:'PPS per year', price:'Index (EU-27 = 100)', occupation:'EUR per hour', spend:'% of total spending', inflation:'% year over year' };
+const unitNames = { EUR:'EUR per year', PPS:'PPS per year', price:'Index (EU-27 = 100)', spend:'% of total spending', inflation:'% year over year' };
 const data = key => snapshot.indicators[key];
 const read = (key, code) => (geo, period) => observation(data(key), code, geo, period);
 const nameSort = (a, b) => countries[a].localeCompare(countries[b]);
-const format = (kind, value) => kind === 'EUR' ? '€' + decimal.format(value) : kind === 'occupation'
-  ? '€' + value.toFixed(2) : kind === 'PPS' ? decimal.format(value) : (kind === 'spend' || kind === 'inflation')
+const format = (kind, value) => kind === 'EUR' ? '€' + decimal.format(value) : kind === 'PPS' ? decimal.format(value) : (kind === 'spend' || kind === 'inflation')
     ? oneDecimal.format(value) + '%' : decimal.format(value);
 
 function flags(flag) {
@@ -62,8 +60,8 @@ function meta(key, period, unit, covered, total, label = '') {
 function heading(title, detail) {
   return `<div class="section-heading"><div><h2 tabindex="-1">${title}</h2><p>${detail}</p></div></div>`;
 }
-function scopeControl() {
-  return select('Country scope', 'scope', [['eu','EU-27'],['all','All available European countries'],['picked','Selected countries']], state.scope);
+function scopeControl(id = 'scope') {
+  return select('Country scope', id, [['eu','EU-27'],['all','All available European countries'],['picked','Selected countries']], state[id]);
 }
 function periodOptions(periods) {
   return [['','Latest shared period'], ...periods.map(value => [value, periodText(value)])];
@@ -93,8 +91,7 @@ function viewParameters(key) {
     case 'price': return { code:state.price, kind:key, title:'How prices compare', sub:plain.price,
       extra:select('What to compare','price',Object.entries(priceOptions),state.price) };
     case 'income': return { code:'PPS', kind:'PPS', title:definitions.income.title, sub:plain.income + ' PPS accounts for local prices. The survey usually reports income from the previous year.', extra:'' };
-    case 'occupation': return { code:state.occupation, kind:key, title:definitions.occupation.title, sub:plain.occupation,
-      extra:select('Occupation group','occupation',Object.entries(occupations),state.occupation) };
+
   }
 }
 
@@ -152,20 +149,20 @@ function ranking(key) {
     ['Country','Eurostat geo code','Observation period','Series','Unit','Value','Eurostat flags','Dataset'],
     rows.map(([geo,[value, flag]]) => [countries[geo],geo,period,code,unit,value,flag,definitions[key].dataset]));
   const covered = rows.filter(([, result]) => available(result)).length;
-  const ranksTitle = key === 'price' ? priceOptions[code] : key === 'occupation' ? occupations[code] : title;
+  const ranksTitle = key === 'price' ? priceOptions[code] : title;
   return `<section class="panel">${heading(title, sub)}
     ${key === 'pay' ? `<div class="pay-units">${extra}<div id="pay-units" class="definition">
       <p><strong>EUR</strong> shows annual take-home pay in euros.</p>
       <p><strong>PPS</strong> adjusts for differences in local prices so you can compare how much that pay can buy.</p>
     </div></div>` : ''}
-    <div class="controls">${scopeControl()}${select(key === 'income' || key === 'occupation' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${key === 'pay' ? '' : extra}</div>
+    <div class="controls">${scopeControl()}${select(key === 'income' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${key === 'pay' ? '' : extra}</div>
     ${coverageNote(result, geos, periods[0])}
-    ${meta(key, periodText(period), unit, covered, rows.length, key === 'income' || key === 'occupation' ? 'Survey year ' : '')}
+    ${meta(key, periodText(period), unit, covered, rows.length, key === 'income' ? 'Survey year ' : '')}
     ${selectionBar()}
     <div class="grid"><div class="subpanel"><h3>Country table</h3><div class="table-tools">
     <input class="search" id="search" type="search" placeholder="Find a country" aria-label="Find a country" value="${escape(state.search)}">${exportButton()}</div>
     <div class="table-scroll ranking" data-scroll="countries" tabindex="0" role="region" aria-label="Sortable country comparison">
-    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Index' : kind === 'occupation' ? 'EUR/hour' : kind,sort)}<th scope="col">Compare</th></tr></thead>
+    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Index' : kind,sort)}<th scope="col">Compare</th></tr></thead>
     <tbody>${rows.map(([geo, value]) => `<tr><td>${ranks.get(geo) ?? '—'}</td><th scope="row">${countries[geo]}</th><td class="right">${cell(kind,value)}</td><td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="4">No countries match this search.</td></tr>'}</tbody></table></div></div>
     <figure class="subpanel"><figcaption><h3>${ranksTitle}${key === 'pay' ? ' in ' + kind : ''}</h3></figcaption>
     ${key === 'price' ? (ref[0] === null ? '<p class="definition">EU average: data unavailable.</p>' : '<p class="bench">EU average = ' + ref[0] + flags(ref[1]) + '</p>') : ''}
@@ -180,12 +177,12 @@ function details(key) {
     <a href="${methodologyLink}">Full methodology on GitHub</a></p></details>`;
 }
 
-function selectionBar() {
+function selectionBar(action = state.view === 'compare' ? '' : '<a class="compare-link" href="#compare">Compare side by side</a>') {
   return `<div class="selection-bar">
       <span class="selection-label">Selected countries <strong>${state.picks.length} / 4</strong></span>
       <div class="picks">${state.picks.map(geo =>
         `<button type="button" class="chip" data-remove="${geo}" aria-label="Remove ${countries[geo]} from comparison">${countries[geo]} <span aria-hidden="true">×</span></button>`).join('')}</div>
-      ${state.view !== 'compare' ? '<a class="compare-link" href="#compare">Compare side by side</a>' : ''}
+      ${action}
     </div>`;
 }
 
@@ -231,6 +228,105 @@ function comparison() {
       `<p class="definition"><strong>${title}</strong> · ${plain[key]}</p>` +
       meta(key,periodText(period),unitNames[kind],state.picks.filter(geo => available(observe(geo,period))).length,state.picks.length,key === 'income' ? 'Survey year ' : '')).join('')}
       <a href="${methodologyLink}">Full methodology on GitHub</a></details></section>`;
+}
+
+const signedRate = new Intl.NumberFormat('en', { minimumFractionDigits:1, maximumFractionDigits:1, signDisplay:'exceptZero' });
+const changeLabel = value => signedRate.format(value) + '%';
+
+function rateCell(value, observations) {
+  const badges = [...new Set(observations.filter(Boolean))].map(flags).join('');
+  return (value === null ? '<span class="missing">Data unavailable</span>' : changeLabel(value)) + badges;
+}
+
+function describeChange(value) {
+  if (Math.abs(value) < 0.05) return 'was broadly unchanged';
+  return (value > 0 ? 'rose ' : 'fell ') + oneDecimal.format(Math.abs(value)) + '%';
+}
+
+function explainIncomeChange(geo, row) {
+  if (!row) return 'Choose a country to see what changed.';
+  if (row.value === null) return countries[geo] + ' · Data unavailable. ' + [row.incomeIssue,row.priceIssue].filter(Boolean).join(' ');
+  const prices = Math.abs(row.priceChange) < 0.05 ? 'were broadly unchanged' : describeChange(row.priceChange);
+  return `In ${countries[geo]}, income ${describeChange(row.nominal)}, prices ${prices}, and purchasing power ${describeChange(row.value)}.`;
+}
+
+function growthChart(rows, inspected) {
+  const comparable = rows.filter(([,row]) => row.value !== null)
+    .sort((a,b) => b[1].value - a[1].value || nameSort(a[0],b[0]));
+  const firstBar = comparable.find(([geo]) => geo === inspected)?.[0] ?? comparable[0]?.[0];
+  const max = Math.max(0.1, ...comparable.map(([,row]) => Math.abs(row.value))) * 1.08;
+  const bars = comparable.map(([geo,row]) => {
+    const width = 50 * Math.abs(row.value) / max;
+    const left = row.value < 0 ? 50 - width : 50;
+    return `<button class="bar-row growth-row" type="button" data-bar="${geo}" data-reading="${escape(explainIncomeChange(geo,row))}"
+      aria-label="${countries[geo]} · ${changeLabel(row.value)} after inflation" tabindex="${geo === firstBar ? 0 : -1}" aria-pressed="${geo === inspected}">
+      <span class="country">${countries[geo]}</span><span class="bar-track growth-track" aria-hidden="true">
+        <span class="growth-fill${row.value < 0 ? ' loss' : ''}" style="width:${width}%;left:${left}%"></span></span>
+      <span class="value">${changeLabel(row.value)}</span></button>`;
+  }).join('');
+  return `<figure class="subpanel"><figcaption><h3>Income change after inflation</h3></figcaption>
+    <p id="bar-value" class="chart-reading" aria-live="polite">${escape(explainIncomeChange(inspected,rows.find(([geo]) => geo === inspected)?.[1]))}</p>
+    ${bars ? `<div class="growth-row growth-axis" aria-hidden="true"><span></span><span><span>Fell</span><strong>0%</strong><span>Rose</span></span><span></span></div>
+    <div class="chart-scroll" data-scroll="bars" role="group" aria-label="Income change after inflation. Use the up and down arrow keys to inspect countries.">${bars}</div>` :
+    '<p class="missing">Data unavailable</p>'}
+    </figure>`;
+}
+
+function incomeVsPrices() {
+  const years = incomePriceYears(snapshot.indicators);
+  const title = heading('Are household incomes keeping up with prices?',
+    'See how much median household income changed, how much prices changed, and what that meant for purchasing power.');
+  if (!years.length) return `<section class="panel">${title}<p class="notice">Data unavailable. The income and price history will appear after the next successful refresh.</p></section>`;
+
+  const growth = (geo,year) => incomePriceChange(snapshot.indicators,geo,year);
+  const all = allCountries.filter(geo => Object.hasOwn(data('income').series.NAC,geo) ||
+    Object.hasOwn(data('annualPrice').series.TOTAL,geo)).sort(nameSort);
+  const geos = state.growthScope === 'picked' ? state.picks : state.growthScope === 'all' ? all : eu;
+  const visibleYears = years.filter(year => all.some(geo => growth(geo,year).value !== null));
+  const result = choosePeriod(visibleYears, (geo,year) => [growth(geo,year).value,''], geos, state.periods['income-prices']);
+  const { period } = result;
+  const query = state.search.trim().toLowerCase();
+  const rows = geos.filter(geo => countries[geo].toLowerCase().includes(query) || geo.toLowerCase() === query)
+    .map(geo => [geo,growth(geo,period)]);
+  const sort = state.sort['income-prices'] ?? { name:'value', direction:-1 };
+  rows.sort(([left,a],[right,b]) => {
+    if (sort.name === 'country') return sort.direction * nameSort(left,right);
+    const x = a[sort.name], y = b[sort.name];
+    if (x === null || y === null) return Number(y !== null) - Number(x !== null) || nameSort(left,right);
+    return sort.direction * (x - y) || nameSort(left,right);
+  });
+  const coverage = rows.filter(([,row]) => row.value !== null).length;
+  const inspected = [state.inspected['income-prices'],'EL'].find(geo => rows.some(([code]) => code === geo)) ?? rows[0]?.[0];
+
+  exportTable('income-vs-prices-' + (period ?? 'unavailable'),
+    ['Country','Eurostat geo code','Income reference year','Income change (%)','Price change (%)','Income change after inflation (%)',
+      'Income flags (prior survey)','Income flags (current survey)','Price flags (prior calendar year)','Price flags (current calendar year)','Income comparability note','Price comparability note'],
+    rows.map(([geo,row]) => [countries[geo],geo,period,row.nominal,row.priceChange,row.value,...row.incomeFlags,...row.priceFlags,row.incomeIssue,row.priceIssue]));
+  const headers = [['country','Country'],['nominal','Income change'],['priceChange','Price change'],['value','After inflation']];
+  const compare = state.growthScope !== 'picked' && state.picks.length
+    ? '<button class="compare-link" type="button" data-growth-scope="picked">Compare selected</button>' : '';
+  return `<section class="panel">${title}
+    <p class="definition growth-definition">Median household income is the middle income after taxes and benefits, adjusted for household size and composition.</p>
+    <div class="controls">${scopeControl('growthScope')}${select('Income reference year','period',periodOptions(years),state.periods['income-prices'] ?? '')}</div>
+    ${coverageNote(result,geos,visibleYears[0],'Some countries have missing data or a break in the series for this year. Select a country for the reason.')}
+    <div class="chart-meta"><span>Income reference year ${periodText(period)}</span><span>${period ? 'Compared with ' + (Number(period) - 1) : 'Year over year'}</span>
+      <span>% change</span><span>${coverage} of ${rows.length} countries</span>
+      <a href="${browserLink(definitions.income.dataset)}" target="_blank" rel="noopener">Eurostat income</a>
+      <a href="${browserLink(definitions.annualPrice.dataset)}" target="_blank" rel="noopener">Eurostat prices</a></div>
+    ${selectionBar(compare)}
+    <div class="grid growth-grid">${growthChart(rows,inspected)}<div class="subpanel"><h3>Country table</h3><div class="table-tools">
+      <input class="search" id="search" type="search" placeholder="Find a country" aria-label="Find a country" value="${escape(state.search)}">${exportButton()}</div>
+      <div class="table-scroll ranking growth-table" data-scroll="countries" tabindex="0" role="region" aria-label="Income and prices by country">
+      <table aria-label="Income and price changes"><thead><tr>${headers.map(([id,label]) => sortHeader('income-prices',id,label,sort)).join('')}<th scope="col">Compare</th></tr></thead>
+      <tbody>${rows.map(([geo,row]) => `<tr>
+        <th scope="row"><button class="country-inspect" type="button" data-growth-country="${geo}" aria-label="Inspect ${countries[geo]}">${countries[geo]}</button></th>
+        <td class="right">${rateCell(row.nominal,row.incomeFlags)}</td><td class="right">${rateCell(row.priceChange,row.priceFlags)}</td>
+        <td class="right real-change">${rateCell(row.value,[...row.incomeFlags,...row.priceFlags])}</td>
+        <td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody></table>
+      </div></div></div>
+    <details><summary>About these figures</summary>
+    <p class="definition">The income reference year is the year people received the income. Prices use the average consumer price index over the same two calendar years. A provisional figure (p) may be revised. A break (b) can make a change unavailable.</p>
+    <p class="definition"><a href="${methodologyLink}">Full methodology on GitHub</a></p></details></section>`;
 }
 
 function spendingView() {
@@ -361,13 +457,13 @@ function methodology() {
 
 function render() {
   const view = location.hash.slice(1);
-  state.view = Object.hasOwn(definitions,view) || view === 'compare' || view === 'method' ? view : 'pay';
+  state.view = ['pay','price','income','income-prices','spend','inflation','compare','method'].includes(view) ? view : 'pay';
   document.querySelectorAll('[data-view]').forEach(tab => {
     if (tab.dataset.view === state.view) tab.setAttribute('aria-current','page');
     else tab.removeAttribute('aria-current');
   });
   currentExport = null;
-  const renderers = { compare:comparison, spend:spendingView, inflation:inflationView, method:methodology };
+  const renderers = { compare:comparison, spend:spendingView, inflation:inflationView, method:methodology, 'income-prices':incomeVsPrices };
   dashboard.innerHTML = renderers[state.view]?.() ?? ranking(state.view);
 }
 function rerender(focus) {
@@ -381,7 +477,7 @@ function rerender(focus) {
 }
 function inspectBar(button, moveFocus = false) {
   state.inspected[state.view] = button.dataset.bar;
-  const last = dashboard.querySelector('[data-bar][aria-pressed="true"]');
+  const last = dashboard.querySelector('[data-bar][tabindex="0"]');
   if (last && last !== button) {
     last.setAttribute('aria-pressed','false');
     last.tabIndex = -1;
@@ -415,9 +511,9 @@ dashboard.addEventListener('change', event => {
     state.periods[state.view] = value;
     if (state.view === 'inflation') state.inflationMonth = '';
     rerender(() => document.querySelector('#period'));
-  } else if (['scope','price','occupation','trendLength','spendCategory','inflationMonth'].includes(id)) {
+  } else if (['scope','growthScope','price','trendLength','spendCategory','inflationMonth'].includes(id)) {
     state[id] = value;
-    if (['scope','price','occupation'].includes(id)) state.periods[state.view] = '';
+    if (['scope','price'].includes(id)) state.periods[state.view] = '';
     rerender(() => document.getElementById(id));
   }
 });
@@ -439,13 +535,13 @@ dashboard.addEventListener('click', event => {
   }
   const button = event.target.closest('button');
   if (!button) return;
-  const { unit, sort, key, remove, pick, bar, category } = button.dataset;
+  const { unit, sort, key, remove, pick, bar, category, growthCountry, growthScope } = button.dataset;
   if (unit) {
     state.currency = unit;
     rerender(() => dashboard.querySelector('[data-unit="' + unit + '"]'));
   } else if (sort) {
     const old = state.sort[key] ?? { name:'value', direction:-1 };
-    state.sort[key] = { name:sort, direction:old.name === sort ? -old.direction : sort === 'value' ? -1 : 1 };
+    state.sort[key] = { name:sort, direction:old.name === sort ? -old.direction : sort === 'country' ? 1 : -1 };
     rerender(() => dashboard.querySelector('[data-sort="' + sort + '"]'));
   } else if (remove || pick) {
     const geo = remove || pick;
@@ -453,6 +549,13 @@ dashboard.addEventListener('click', event => {
     else if (state.picks.length < 4) state.picks.push(geo);
     rerender(() => (pick ? dashboard.querySelector('[data-pick="' + geo + '"]') : dashboard.querySelector('[data-remove]'))
       ?? dashboard.querySelector('#add-country, #search'));
+  } else if (growthScope) {
+    state.growthScope = growthScope;
+    state.search = '';
+    rerender(() => document.querySelector('#growthScope'));
+  } else if (growthCountry) {
+    state.inspected[state.view] = growthCountry;
+    rerender(() => dashboard.querySelector('[data-growth-country="' + growthCountry + '"]'));
   } else if (bar) {
     inspectBar(button,true);
   } else if (category) {

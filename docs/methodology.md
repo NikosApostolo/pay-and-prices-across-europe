@@ -1,15 +1,15 @@
 # Methodology
 
-The dashboard compares countries on separate indicators in their original units. It uses Eurostat’s Statistics API for the dashboard snapshot and Eurostat’s Data Browser TSV download format to cross-check published observations. The dashboard records each API query and its source timestamp alongside the values and flags.
+The dashboard compares pay, spending, prices and income across countries. Income vs prices compares changes over the same calendar year. It uses Eurostat’s Statistics API for the dashboard snapshot and Eurostat’s Data Browser TSV download format to cross-check published observations. The dashboard records each API query and its source timestamp alongside the values and flags.
 
 | View | Eurostat dataset and exact selection |
 | --- | --- |
 | Take-home pay | [earn_nt_net](https://ec.europa.eu/eurostat/databrowser/view/earn_nt_net/default/table?lang=en). Annual, `estruct=NET`, `ecase=P1_NCH_AW100`, `currency=EUR` or `PPS`. A modelled, single worker without children at 100% of the country’s average wage. Eurostat deducts income tax and employee social contributions and includes family allowances where applicable. The PPS series is taken directly from this dataset. |
 | Household spending | [nama_10_cp18](https://ec.europa.eu/eurostat/databrowser/view/nama_10_cp18/default/table?lang=en). Annual, `unit=CP_MEUR`, `coicop18=TOTAL` and divisions `CP01` through `CP13`. Data use current prices in million euros. The domestic basis includes spending by visitors and excludes residents’ spending abroad. `CP04` includes the rental value imputed to owner-occupied housing. |
 | Price levels | [prc_ppp_ind_1](https://ec.europa.eu/eurostat/databrowser/view/prc_ppp_ind_1/default/table?lang=en). Annual, `indic_ppp=PLI_EU27_2020`. `E011` household final consumption expenditure, `A010101` food, `A0104` housing, water, electricity, gas and other fuels, `A010405` electricity, gas and other fuels, and `A0107` transport. A value of 120 is 20% above the EU-27 benchmark for that category and year. |
-| Household income | [ilc_di03](https://ec.europa.eu/eurostat/databrowser/view/ilc_di03/default/table?lang=en). Annual, `age=TOTAL`, `sex=T`, `statinfo=MED_EI`, `unit=PPS`. Disposable household income is adjusted for household size and composition before taking the median across people. Income generally refers to the calendar year before the survey year. |
+| Household income | [ilc_di03](https://ec.europa.eu/eurostat/databrowser/view/ilc_di03/default/table?lang=en). Annual, `age=TOTAL`, `sex=T`, `statinfo=MED_EI`, units `PPS`, `NAC` and `EUR`. Disposable household income is adjusted for household size and composition before taking the median across people. Income generally refers to the calendar year before the survey year. The Household income tab uses PPS. Income vs prices uses national currency for growth and uses the euro series to check for currency changes. |
 | Inflation | [prc_hicp_minr](https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en). Monthly, `unit=RCH_A`, `coicop18=TOTAL` under ECOICOP version 2. Each observation gives the all-items year-over-year rate for the selected month. |
-| Occupations | [earn_ses_hourly](https://ec.europa.eu/eurostat/databrowser/view/earn_ses_hourly/default/table?lang=en). `indic_se=MED_E_EUR`, `nace_r2=B-S_X_O`, `worktime=TOTAL`, `age=TOTAL`, `sex=T`, with broad ISCO-08 groups `OC0` and `OC1` through `OC9`. The figures are median gross hourly earnings in euros. The filters cover full- and part-time workers in industry, construction and services excluding public administration, defence and compulsory social security. The mandatory survey coverage starts at business units with 10 employees. |
+| Income vs prices | [prc_hicp_ainr](https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_ainr/default/table?lang=en). Annual, `unit=INX_A_AVG`, `coicop18=TOTAL`. The all-items HICP index is averaged over the calendar year, with 2025 as its base. The app pairs its growth with national-currency income growth from `ilc_di03`. |
 
 ## Exact Eurostat API queries
 
@@ -18,15 +18,33 @@ These are the requests used to build and refresh the snapshot. The repeated filt
 - [earn_nt_net · Annual take-home pay](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_nt_net?lang=EN&freq=A&currency=EUR&currency=PPS&estruct=NET&ecase=P1_NCH_AW100)
 - [nama_10_cp18 · How households spend](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_cp18?lang=EN&freq=A&unit=CP_MEUR&coicop18=TOTAL&coicop18=CP01&coicop18=CP02&coicop18=CP03&coicop18=CP04&coicop18=CP05&coicop18=CP06&coicop18=CP07&coicop18=CP08&coicop18=CP09&coicop18=CP10&coicop18=CP11&coicop18=CP12&coicop18=CP13)
 - [prc_ppp_ind_1 · Consumer price levels](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_ppp_ind_1?lang=EN&freq=A&indic_ppp=PLI_EU27_2020&ppp_cat18=E011&ppp_cat18=A010101&ppp_cat18=A0104&ppp_cat18=A010405&ppp_cat18=A0107)
-- [ilc_di03 · Median disposable income](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_di03?lang=EN&freq=A&age=TOTAL&sex=T&statinfo=MED_EI&unit=PPS)
+- [ilc_di03 · Median disposable income](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_di03?lang=EN&freq=A&age=TOTAL&sex=T&statinfo=MED_EI&unit=PPS&unit=NAC&unit=EUR)
 - [prc_hicp_minr · Inflation over time](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?lang=EN&freq=M&unit=RCH_A&coicop18=TOTAL)
-- [earn_ses_hourly · Hourly earnings by occupation](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_ses_hourly?lang=EN&freq=A&nace_r2=B-S_X_O&isco08=OC1&isco08=OC2&isco08=OC3&isco08=OC4&isco08=OC5&isco08=OC6&isco08=OC7&isco08=OC8&isco08=OC9&isco08=OC0&worktime=TOTAL&age=TOTAL&sex=T&indic_se=MED_E_EUR)
+- [prc_hicp_ainr · Annual average consumer price index](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_ainr?lang=EN&freq=A&unit=INX_A_AVG&coicop18=TOTAL)
 
 ## Countries, coverage and flags
 
 The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.
 
-Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`. The API has also been observed to return `|C` for confidential occupation values.
+Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`.
+
+## Income vs prices
+
+Median equivalised disposable income is the middle income across people after taxes and including benefits, with household income adjusted for the number and ages of household members. The comparison measures changes in this median across survey years.
+
+For income reference year `t`, the app reads national-currency incomes from surveys `t + 1` and `t`, and annual-average price indices from calendar years `t` and `t − 1`. The comparison uses EU-SILC survey years from 2003. Eurostat assigns income to the preceding calendar year for participating countries. Ireland used a rolling period through survey year 2019, so its first eligible comparison is income year 2020. Historical UK observations used a rolling or current-income period and cannot be aligned to these calendar years. [EU-SILC metadata](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_sieusilc.htm) · [Ireland’s metadata](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_simsilc_ie.htm) · [Historical UK and Irish reference periods](https://ec.europa.eu/eurostat/documents/3888793/14842408/KS-01-21-385-EN-N.pdf/78e803f6-7e06-341c-c99f-67ac67cb8e28)
+
+- **Income change** is `100 × (this year’s income ÷ last year’s income − 1)`.
+- **Price change** is `100 × (this year’s annual-average HICP ÷ last year’s annual-average HICP − 1)`.
+- **Income change after inflation** is `100 × [(this year’s income ÷ last year’s income) ÷ (this year’s annual-average HICP ÷ last year’s annual-average HICP) − 1]`.
+
+The default is the latest year with comparable data for every country in scope. If there is no such year, the view uses the latest year with data for at least one of those countries and marks the gaps. The chart shows signed changes around a zero line. The CSV keeps the calculated precision, flags and reasons for unavailable values.
+
+Missing data, a break at the newer observation (`b`), or a definition difference at either observation (`d`) blocks the affected change. The older observation’s break flag describes its boundary with an earlier year. Within two survey years of a known euro adoption, the app checks whether each national-currency value equals its published EUR equivalent. If only one matches, or an EUR value is missing, it leaves the income change unavailable. The growth calculation itself uses national-currency values. An unaffected component can still appear when the other is unavailable. [Euro adoption dates](https://economy-finance.ec.europa.eu/euro/what-euro-area_en)
+
+### Worked example for Greece
+
+For income year **2024**, Eurostat published **€11,700** in the 2025 survey and **€10,850** in the 2024 survey. The annual-average HICP was **97.19** in 2024 and **94.37** in 2023. Income rose **7.83%**, prices rose **2.99%**, and income after inflation rose **4.71%**, calculated as `100 × [(11,700 ÷ 10,850) ÷ (97.19 ÷ 94.37) − 1]`. [Source cells and verification](crosscheck.tsv)
 
 ## Spending calculations
 
@@ -42,8 +60,8 @@ The daily refresh requests the complete filtered history so it can pick up new p
 
 ## Initial verification
 
-The first snapshot was fetched on 22 November 2026. The latest period available for all 27 EU countries is 2025 for pay, overall price levels and household income, and October 2026 for inflation. The spending source includes 2025 for 26 EU members, so a full EU-27 comparison uses 2024. For the occupation groups with broad coverage, the 2018 wave is the latest shared wave in this dataset and filter combination. The 2022 subset contains published values for Greece and lacks equivalent coverage across the rest of the EU. Group-level coverage is shown when choosing an occupation.
+The first snapshot was fetched on 22 November 2026. The latest period available for all 27 EU countries is 2025 for pay, overall price levels and household income, and October 2026 for inflation. The spending source includes 2025 for 26 EU members, so a full EU-27 comparison uses 2024.
 
-The [cross-check record](crosscheck.tsv) contains 88 value and flag comparisons across the six datasets, including Greece, Germany, the Netherlands, France and the EU-27.
+The [cross-check record](crosscheck.tsv) compares official Eurostat TSV values and flags against the dashboard snapshot, including the inputs for the 2024 Greek, Romanian and Slovak income comparisons.
 
-Additional official references cover the [Statistics API](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-detailed-guidelines/api-statistics), [Data Browser TSV export links](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-faq/excel-power-query), [national-accounts spending](https://ec.europa.eu/eurostat/cache/metadata/EN/nama_10_cp18_esms_el.htm), [EU-SILC income](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_sieusilc.htm), and the [Structure of Earnings Survey](https://ec.europa.eu/eurostat/en/web/labour-market/information-data/earnings).
+Additional official references cover the [Statistics API](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-detailed-guidelines/api-statistics), [Data Browser TSV export links](https://ec.europa.eu/eurostat/en/web/user-guides/data-browser/api-data-access/api-faq/excel-power-query), [national-accounts spending](https://ec.europa.eu/eurostat/cache/metadata/EN/nama_10_cp18_esms_el.htm), [EU-SILC income](https://ec.europa.eu/eurostat/cache/metadata/en/ilc_sieusilc.htm), and [HICP methodology](https://ec.europa.eu/eurostat/cache/metadata/en/prc_hicp_esms.htm).

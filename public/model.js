@@ -1,6 +1,6 @@
 import { spending } from './definitions.js';
 
-export const observation = (indicator, series, geo, period) => indicator.series[series]?.[geo]?.[period] ?? [null, ''];
+export const observation = (indicator, series, geo, period) => indicator?.series[series]?.[geo]?.[period] ?? [null, ''];
 export const available = ([value]) => Number.isFinite(value);
 
 export function periodsFor(indicator, read, geos) {
@@ -43,4 +43,65 @@ export function csvText(headers, rows) {
   return [headers, ...rows].map(row =>
     row.map(value => value == null ? '' : '"' + String(value).replaceAll('"', '""') + '"').join(',')
   ).join('\r\n') + '\r\n';
+}
+
+const firstSilcSurvey = 2003;
+// The reporting currency can change in a survey year near the euro changeover.
+const euroAdoption = { SI:2007, CY:2008, MT:2008, SK:2009, EE:2011, LV:2014, LT:2015, HR:2023, BG:2026 };
+
+function seriesBreak(previous, current) {
+  const before = previous[1].toLowerCase();
+  const after = current[1].toLowerCase();
+  return after.includes('b') || after.trim() === '|' || before.includes('d') || after.includes('d');
+}
+
+function sameIncomeCurrency(income, geo, year, previous, current) {
+  if (Math.abs(year - (euroAdoption[geo] ?? Infinity)) > 2) return true;
+  const previousEuro = observation(income,'EUR',geo,year - 1)[0];
+  const currentEuro = observation(income,'EUR',geo,year)[0];
+  return previousEuro > 0 && currentEuro > 0 && (previous[0] === previousEuro) === (current[0] === currentEuro);
+}
+
+export function incomePriceYears({income,annualPrice}) {
+  if (!income?.series.NAC || !annualPrice) return [];
+  const surveys = new Set(income.periods);
+  const prices = new Set(annualPrice.periods);
+  return annualPrice.periods.filter(year => Number(year) >= firstSilcSurvey &&
+    prices.has(String(Number(year) - 1)) && surveys.has(year) && surveys.has(String(Number(year) + 1)));
+}
+
+export function incomePriceChange({income,annualPrice}, geo, year) {
+  const incomeYear = Number(year);
+  const surveyYear = incomeYear + 1;
+  const priorIncome = observation(income,'NAC',geo,incomeYear);
+  const nextIncome = observation(income,'NAC',geo,surveyYear);
+  const priorPrice = observation(annualPrice,'TOTAL',geo,incomeYear - 1);
+  const nextPrice = observation(annualPrice,'TOTAL',geo,incomeYear);
+  const incomeFlags = [priorIncome[1],nextIncome[1]];
+  const priceFlags = [priorPrice[1],nextPrice[1]];
+  const rate = (previous,current) => 100 * (current / previous - 1);
+
+  let incomeIssue = '';
+  if (incomeYear < firstSilcSurvey) {
+    incomeIssue = 'The earlier survey predates the EU-SILC periods used here.';
+  } else if (geo === 'UK' || (geo === 'IE' && incomeYear < 2020)) {
+    incomeIssue = 'The income survey used a rolling period that cannot be matched to a calendar year.';
+  } else if (seriesBreak(priorIncome,nextIncome)) {
+    incomeIssue = 'A break in the income series prevents comparing these years.';
+  } else if (!(priorIncome[0] > 0) || !available(nextIncome)) {
+    incomeIssue = 'Income data are missing for one or both years.';
+  } else if (!sameIncomeCurrency(income,geo,surveyYear,priorIncome,nextIncome)) {
+    incomeIssue = 'These income figures cannot be verified on the same currency basis.';
+  }
+
+  let priceIssue = '';
+  if (seriesBreak(priorPrice,nextPrice)) {
+    priceIssue = 'A break in the price series prevents comparing these years.';
+  } else if (!(priorPrice[0] > 0 && nextPrice[0] > 0)) {
+    priceIssue = 'Price data are missing for one or both years.';
+  }
+  const nominal = incomeIssue ? null : rate(priorIncome[0],nextIncome[0]);
+  const priceChange = priceIssue ? null : rate(priorPrice[0],nextPrice[0]);
+  const value = incomeIssue || priceIssue ? null : rate(nextPrice[0] / priorPrice[0],nextIncome[0] / priorIncome[0]);
+  return { nominal, priceChange, value, incomeFlags, priceFlags, incomeIssue, priceIssue };
 }
