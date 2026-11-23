@@ -22,6 +22,14 @@ These are the requests used to build and refresh the snapshot. The repeated filt
 - [prc_hicp_minr · Inflation over time](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?lang=EN&freq=M&unit=RCH_A&coicop18=TOTAL)
 - [prc_hicp_ainr · Annual average consumer price index](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_ainr?lang=EN&freq=A&unit=INX_A_AVG&coicop18=TOTAL)
 
+## What the dashboard labels mean
+
+| Dashboard label | Eurostat measure |
+| --- | --- |
+| Buying power | Purchasing power standards (PPS). The figures account for local prices. Equal PPS values buy roughly the same amount across countries. |
+| Typical household income | Median equivalised disposable income. Eurostat adjusts income after taxes and benefits for how many adults and children live together, then takes the middle value across people. |
+| Change after inflation | The change in what pay or income could buy over time, calculated using consumer prices for the same years. |
+
 ## Countries, coverage and flags
 
 The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.

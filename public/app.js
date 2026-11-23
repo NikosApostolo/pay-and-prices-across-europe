@@ -5,11 +5,12 @@ const dashboard = document.querySelector('#dashboard');
 const methodologyLink = document.querySelector('.method-link').href;
 const plain = {
   pay:'Annual pay after taxes and employee contributions for a single worker without children earning the average wage in their country.',
-  price:'A price index of 120 means this category is 20% more expensive than the EU average.',
-  income:'This is the income of the person in the middle, after taxes and benefits, with household income adjusted for how many adults and children live together.',
-  spend:'Each percentage is a share of all household spending in the country, including visitors’ spending. Housing includes utilities and the estimated rent of homes people own.',
-  inflation:'A value of 3% means consumer prices were 3% higher than in the same month a year earlier.',
+  price:'The EU average is 100. A score of 120 means prices are 20% higher, and 80 means they are 20% lower.',
+  income:'This is the middle income after taxes and benefits, allowing for how many adults and children live together. About half of people have more and half have less.',
+  spend:'See where the money goes. The figures include spending by visitors. Housing includes utility bills and an estimate of what homeowners would pay to rent their homes.',
+  inflation:'Compare prices with the same month last year. A rate of 3% means prices were 3% higher.',
 };
+const buyingPower = 'The figures account for local prices, so higher numbers mean you can buy more.';
 const priceOptions = { ...prices, E011:'All household purchases', A0104:'Housing and utilities', A010405:'Electricity, gas and other fuels' };
 const decimal = new Intl.NumberFormat('en', { maximumFractionDigits:2 });
 const oneDecimal = new Intl.NumberFormat('en', { minimumFractionDigits:1, maximumFractionDigits:1 });
@@ -64,13 +65,13 @@ function scopeControl(id = 'scope') {
   return select('Country scope', id, [['eu','EU-27'],['all','All available European countries'],['picked','Selected countries']], state[id]);
 }
 function periodOptions(periods) {
-  return [['','Latest shared period'], ...periods.map(value => [value, periodText(value)])];
+  return [['','Latest available for all'], ...periods.map(value => [value, periodText(value)])];
 }
 function coverageNote(result, geos, latest, missing = 'Some countries have no value for this period. Their rows stay visible and their values are left out of the ranking.') {
   if (!geos.length) return '<p class="notice">Add a country to use this selection.</p>';
   if (!result.period) return '<p class="notice">Data unavailable for the selected countries and indicator.</p>';
   if (!result.complete) return '<p class="notice">' + missing + '</p>';
-  if (!state.periods[state.view] && latest && latest > result.period) return '<p class="scope-note">Latest release includes ' + periodText(latest) + '. ' + periodText(result.period) + ' is the latest period with full coverage for this selection.</p>';
+  if (!state.periods[state.view] && latest && latest > result.period) return '<p class="scope-note">Some countries have newer data. ' + periodText(result.period) + ' is the latest period with figures for every country in this comparison.</p>';
   return '';
 }
 function exportButton() {
@@ -87,13 +88,13 @@ function viewParameters(key) {
   switch (key) {
     case 'price': return { code:state.price, kind:key, title:'How prices compare', sub:plain.price,
       extra:select('What to compare','price',Object.entries(priceOptions),state.price) };
-    case 'income': return { code:'PPS', kind:'PPS', title:definitions.income.title, sub:plain.income + ' PPS accounts for local prices. The survey usually reports income from the previous year.', extra:'' };
+    case 'income': return { code:'PPS', kind:'PPS', title:'What can a typical household income buy?', sub:plain.income + ' ' + buyingPower, extra:'' };
 
   }
 }
 
 function benchmarkReading(kind, value) {
-  return `<p class="bench"><i class="benchmark-key" aria-hidden="true"></i>EU-27 benchmark · <span>${cell(kind,value)}${kind === 'PPS' && available(value) ? ' PPS' : ''}</span></p>`;
+  return `<p class="bench"><i class="benchmark-key" aria-hidden="true"></i>EU-27 benchmark · <span>${cell(kind,value)}</span></p>`;
 }
 
 function rankingChart(rows, kind, reference) {
@@ -101,7 +102,7 @@ function rankingChart(rows, kind, reference) {
   if (!values.length) return '<p class="missing">Data unavailable</p>';
   const max = Math.max(1, reference ?? 0, ...values.map(row => row[1][0])) * 1.06;
   const active = values.find(([geo]) => geo === state.inspected[state.view]) ?? values[0];
-  const label = (geo, [value, flag]) => [countries[geo], format(kind, value), unitNames[kind], flagsLabel(flag)].filter(Boolean).join(' · ');
+  const label = (geo, [value, flag]) => [countries[geo], format(kind, value), kind === 'PPS' ? 'buying power per year' : unitNames[kind], flagsLabel(flag)].filter(Boolean).join(' · ');
   return `<p id="bar-value" class="chart-reading" aria-live="polite">${escape(label(...active))}</p>
     <div class="chart-scroll" data-scroll="bars" role="group" aria-label="Country bars. Use the up and down arrow keys to inspect values.">
     ${values.map(([geo, result]) => {
@@ -150,16 +151,17 @@ function ranking(key) {
     ['Country','Eurostat geo code','Observation period','Series','Unit','Value','Eurostat flags','Dataset'],
     [...rows,[benchmark,ref]].map(([geo,[value, flag]]) => [countries[geo],geo,period,code,unit,value,flag,definitions[key].dataset]));
   const covered = rows.filter(([, result]) => available(result)).length;
-  const ranksTitle = key === 'price' ? priceOptions[code] : title;
+  const ranksTitle = key === 'price' ? priceOptions[code] : 'What a typical income can buy';
   return `<section class="panel">${heading(title, sub)}
     <div class="controls">${scopeControl()}${select(key === 'income' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${extra}</div>
     ${coverageNote(result, geos, periods[0])}
-    ${meta(key, periodText(period), unit, covered, rows.length, key === 'income' ? 'Survey year ' : '')}
+    ${meta(key, periodText(period), key === 'income' ? 'Buying power per year' : unit, covered, rows.length, key === 'income' ? 'Survey year ' : '')}
+    ${key === 'income' ? '<p class="survey-note">The survey usually reports what people earned or received the year before.</p>' : ''}
     ${selectionBar()}
     <div class="grid"><div class="subpanel"><h3>Country table</h3><div class="table-tools">
     <input class="search" id="search" type="search" placeholder="Find a country" aria-label="Find a country" value="${escape(state.search)}">${exportButton()}</div>
     <div class="table-scroll ranking" data-scroll="countries" tabindex="0" role="region" aria-label="Sortable country comparison">
-    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Index' : kind,sort)}<th scope="col">Compare</th></tr></thead>
+    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Prices (EU = 100)' : 'Buying power',sort)}<th scope="col">Compare</th></tr></thead>
     <tbody>${rows.map(([geo, value]) => `<tr><td>${ranks.get(geo) ?? '—'}</td><th scope="row">${countries[geo]}</th><td class="right">${cell(kind,value)}</td><td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="4">No countries match this search.</td></tr>'}</tbody></table></div></div>
     <figure class="subpanel"><figcaption><h3>${ranksTitle}</h3></figcaption>
     ${benchmarkReading(kind,ref)}
@@ -168,7 +170,9 @@ function ranking(key) {
 }
 
 function details(key) {
-  return `<details><summary>About these figures</summary><p class="definition">Eurostat flags include <b>b</b> (the series changed), <b>e</b> (estimated), <b>p</b> (may be revised), and <b>c</b> (confidential). Missing values are blank in downloads.</p>
+  return `<details><summary>About these figures</summary>
+    ${key === 'pay' || key === 'income' ? '<p class="definition">Buying power is measured in purchasing power standards (PPS). Equal values mean roughly equal buying power across countries. For example, 30,000 means about 50% more buying power than 20,000. Only figures marked € are in euros.</p>' : ''}
+    <p class="definition">Eurostat flags include <b>b</b> (the series changed), <b>e</b> (estimated), <b>p</b> (may be revised), and <b>c</b> (confidential). Missing values are blank in downloads.</p>
     <p class="definition">Eurostat last updated this dataset on ${dateTime.format(new Date(data(key).updated))} Athens time.
     <a href="${methodologyLink}">Full methodology on GitHub</a></p></details>`;
 }
@@ -192,10 +196,10 @@ function picker() {
 
 function comparison() {
   const items = [
-    ['pay','EUR','Take-home pay','EUR'], ['pay','PPS','Take-home pay in PPS','PPS'],
-    ['income','PPS','Median household income (PPS)','PPS'], ['price','E011','Overall prices (EU = 100)','price'],
+    ['pay','EUR','Take-home pay (€)','EUR'], ['pay','PPS','What take-home pay can buy','PPS'],
+    ['income','PPS','What a typical household income can buy','PPS'], ['price','E011','Overall prices (EU = 100)','price'],
     ['spend','CP04','Spending on housing and utilities (%)','spend'],
-    ['inflation','TOTAL','Inflation (year over year)','inflation'],
+    ['inflation','TOTAL','Price change since the same month last year','inflation'],
   ].map(([key, code, title, kind]) => {
     const observe = key === 'spend' ? (geo, period) => {
       const record = spendingRecord(data('spend'), geo, period);
@@ -213,7 +217,7 @@ function comparison() {
   const comparisonRows = items.map(({title,kind,period,observe}) => [
     title + ' · ' + periodText(period), ...state.picks.map(geo => cell(kind,observe(geo,period))),
   ]);
-  return `<section class="panel">${heading('Compare countries side by side','Compare up to four countries. Each row uses the latest period shared by the countries you selected.')}
+  return `<section class="panel">${heading('Compare countries side by side','Compare up to four countries. Each row gives the latest figures available for all those countries when possible.')}
     ${picker()}
     ${state.picks.length ? `
       ${hasGaps ? '<p class="notice">Some indicators lack a shared period for all selected countries. Their rows use the latest period with any data and show where values are missing.</p>' : ''}
@@ -221,8 +225,8 @@ function comparison() {
       ${table(['Indicator and period',...state.picks.map(geo => countries[geo])],comparisonRows,'Side-by-side country comparison')}
     ` : '<p class="notice">Add a country to start comparing.</p>'}
     <details><summary>What these figures mean</summary>${items.map(({key,title,kind,period,observe}) =>
-      `<p class="definition"><strong>${title}</strong> · ${plain[key]}</p>` +
-      meta(key,periodText(period),unitNames[kind],state.picks.filter(geo => available(observe(geo,period))).length,state.picks.length,key === 'income' ? 'Survey year ' : '')).join('')}
+      `<p class="definition"><strong>${title}</strong> · ${plain[key]}${kind === 'PPS' ? ' ' + buyingPower : ''}</p>` +
+      meta(key,periodText(period),kind === 'PPS' ? 'Buying power per year' : unitNames[kind],state.picks.filter(geo => available(observe(geo,period))).length,state.picks.length,key === 'income' ? 'Survey year ' : '')).join('')}
       <a href="${methodologyLink}">Full methodology on GitHub</a></details></section>`;
 }
 
@@ -239,11 +243,16 @@ function describeChange(value) {
   return (value > 0 ? 'rose ' : 'fell ') + oneDecimal.format(Math.abs(value)) + '%';
 }
 
+function buyingPowerChange(value) {
+  if (Math.abs(value) < 0.05) return 'could buy about the same amount';
+  return 'could buy ' + oneDecimal.format(Math.abs(value)) + '% ' + (value > 0 ? 'more' : 'less');
+}
+
 function explainIncomeChange(geo, row) {
   if (!row) return 'Choose a country to see what changed.';
   if (row.value === null) return countries[geo] + ' · Data unavailable. ' + [row.incomeIssue,row.priceIssue].filter(Boolean).join(' ');
   const prices = Math.abs(row.priceChange) < 0.05 ? 'were broadly unchanged' : describeChange(row.priceChange);
-  return `In ${countries[geo]}, income ${describeChange(row.nominal)}, prices ${prices}, and purchasing power ${describeChange(row.value)}.`;
+  return `In ${countries[geo]}, income ${describeChange(row.nominal)} and prices ${prices}. That income ${buyingPowerChange(row.value)}.`;
 }
 
 function growthChart(rows, inspected) {
@@ -271,7 +280,7 @@ function growthChart(rows, inspected) {
 function incomeVsPrices() {
   const years = incomePriceYears(snapshot.indicators);
   const title = heading('Are household incomes keeping up with prices?',
-    'See how much median household income changed, how much prices changed, and what that meant for purchasing power.');
+    'Did a typical household income buy more or less than the year before?');
   if (!years.length) return `<section class="panel">${title}<p class="notice">Data unavailable. The income and price history will appear after the next successful refresh.</p></section>`;
 
   const growth = (geo,year) => incomePriceChange(snapshot.indicators,geo,year);
@@ -302,10 +311,10 @@ function incomeVsPrices() {
   const compare = state.growthScope !== 'picked' && state.picks.length
     ? '<button class="compare-link" type="button" data-growth-scope="picked">Compare selected</button>' : '';
   return `<section class="panel">${title}
-    <p class="definition growth-definition">Median household income is the middle income after taxes and benefits, adjusted for household size and composition.</p>
-    <div class="controls">${scopeControl('growthScope')}${select('Income reference year','period',periodOptions(years),state.periods['income-prices'] ?? '')}</div>
+    <p class="definition growth-definition">Typical means the middle income after taxes and benefits, allowing for how many adults and children live together.</p>
+    <div class="controls">${scopeControl('growthScope')}${select('Income year','period',periodOptions(years),state.periods['income-prices'] ?? '')}</div>
     ${coverageNote(result,geos,visibleYears[0],'Some countries have missing data or a break in the series for this year. Select a country for the reason.')}
-    <div class="chart-meta"><span>Income reference year ${periodText(period)}</span><span>${period ? 'Compared with ' + (Number(period) - 1) : 'Year over year'}</span>
+    <div class="chart-meta"><span>Income received in ${periodText(period)}</span><span>${period ? 'Compared with ' + (Number(period) - 1) : 'Year over year'}</span>
       <span>% change</span><span>${coverage} of ${rows.length} countries</span>
       <a href="${browserLink(definitions.income.dataset)}" target="_blank" rel="noopener">Eurostat income</a>
       <a href="${browserLink(definitions.annualPrice.dataset)}" target="_blank" rel="noopener">Eurostat prices</a></div>
@@ -321,7 +330,7 @@ function incomeVsPrices() {
         <td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody></table>
       </div></div></div>
     <details><summary>About these figures</summary>
-    <p class="definition">The income reference year is the year people received the income. Prices use the average consumer price index over the same two calendar years. A provisional figure (p) may be revised. A break (b) can make a change unavailable.</p>
+    <p class="definition">Each comparison uses income and average prices for the same two years. Some figures may change when Eurostat updates them (p). A change in how figures were measured (b) can leave a gap.</p>
     <p class="definition"><a href="${methodologyLink}">Full methodology on GitHub</a></p></details></section>`;
 }
 
@@ -439,7 +448,7 @@ function inflationView() {
     ${picker()}<div class="controls">${select('End month','period',periodOptions(periods),state.periods.inflation ?? '')}${select('Trend length','trendLength',[['12','12 months'],['24','24 months'],['60','60 months']],state.trendLength ?? '24')}</div>
     ${coverageNote(result,state.picks,periods[0],'Some selected countries have no value for the end month. Missing months leave gaps in the chart.')}
     ${meta('inflation',range,unitNames.inflation,state.picks.filter(geo => available(observe(geo,end))).length,state.picks.length)}
-    <p class="definition">Coverage above refers to the end month. The EU-27 line uses the published aggregate. Gaps mark months without data.</p>
+    <p class="definition">The dashed line shows EU-27 inflation. Gaps mark months without data.</p>
     <div class="legend">${active.map((geo,index) => `<span>${geo === benchmark ? '<i class="benchmark-key" aria-hidden="true"></i>' : `<i class="swatch" style="background:${colors[index]}"></i>`}${countries[geo]}</span>`).join('')}</div>
     ${trendPlot(active,window,observe,selectedMonth)}
     ${window.length ? `<div class="chart-inspector">
@@ -463,7 +472,7 @@ function salarySummary(series, start, end) {
   const last = series.at(-1);
   if (!last || last.realPay === null) return (last?.issue ?? 'Data unavailable.') + ' Choose another date range to measure the change.';
   const prices = Math.abs(last.priceIndex - 100) < 0.05 ? 'were broadly unchanged' : describeChange(last.priceIndex - 100);
-  return `From ${start} to ${end}, take-home pay ${describeChange(last.payIndex - 100)}, prices ${prices}, and purchasing power ${describeChange(last.realPay)}.`;
+  return `From ${start} to ${end}, take-home pay ${describeChange(last.payIndex - 100)} and prices ${prices}. That pay ${buyingPowerChange(last.realPay)}.`;
 }
 
 function salaryPlot(series, domain, inspectYear) {
@@ -510,7 +519,7 @@ function salaryTrends() {
   const { years, latest, range } = salaryWindow();
   const {start,end} = range;
   const title = heading('Are salaries keeping up with prices?',
-    'Eurostat models take-home pay for a single worker without children who earns their country’s average wage.');
+    'Take-home pay is what a single worker with no children on their country’s average wage has left after tax and contributions.');
   if (!years.length) return `<section class="panel">${title}<p class="notice">Data unavailable. Salary history will appear after the next successful refresh.</p></section>`;
 
   const geos = state.salaryCountries;
@@ -555,7 +564,7 @@ function salaryTrends() {
     <div class="salary-cards">${series.map(([geo,rows]) => {
       const point = rows.find(row => row.year === inspect);
       const covered = rows.filter(row => row.realPay !== null);
-      const coverage = covered.length ? `${covered[0].year}–${covered.at(-1).year} · ${covered.length} of ${rows.length} years with both series` : 'No comparable years in this range';
+      const coverage = covered.length ? `${covered[0].year}–${covered.at(-1).year} · ${covered.length} of ${rows.length} years with pay and price data` : 'No years with comparable pay and price figures';
       return `<figure class="salary-card${geo === benchmark ? ' salary-benchmark' : ''}"><figcaption><h3>${geo === benchmark ? 'EU-27 benchmark' : countries[geo]}</h3><p class="salary-summary">${escape(salarySummary(rows,start,end))}</p></figcaption>
         <p class="salary-coverage">${coverage}</p>
         ${rows.some(row => row.payIndex !== null || row.priceIndex !== null) ? salaryPlot(rows,{min,max,ticks},inspect) : ''}
@@ -563,7 +572,7 @@ function salaryTrends() {
           <span class="pay-reading">Take-home pay ${cell('price',[point.payIndex,point.payPoint[1]])}</span>
           <span class="price-reading">Consumer prices ${cell('price',[point.priceIndex,point.pricePoint[1]])}</span>
           ${point.issue ? `<p class="missing">${escape(point.issue)}</p>` : ''}</div>` : ''}
-        ${geo === benchmark ? '<p class="salary-coverage salary-benchmark-note">Eurostat’s weighted EU-27 pay in euros and EU-27 consumer prices.</p>' : ''}
+        ${geo === benchmark ? '<p class="salary-coverage salary-benchmark-note">EU-27 pay is measured in euros. Countries with more workers count more in the EU average.</p>' : ''}
         </figure>`;
     }).join('')}</div>
     <p class="definition"><a href="${browserLink(definitions.pay.dataset)}">Eurostat take-home pay</a> · <a href="${browserLink(definitions.annualPrice.dataset)}">Eurostat annual prices</a> · <a href="${methodologyLink}#salaries-vs-prices">Methodology</a></p>
@@ -580,7 +589,7 @@ function salaryRanking() {
   const result = choosePeriod(periods,(geo,year) => [allMeasures(geo,year) ? 1 : null,''],geos,state.periods.pay);
   const {period} = result;
   const title = heading('Where does a salary go furthest?',
-    'PPS adjusts for differences in local price levels so you can compare what salaries buy across countries.');
+    'A higher salary can buy less where prices are higher. Buying power accounts for local prices so you can compare what salaries buy across countries.');
   const query = state.search.trim().toLowerCase();
   const rows = geos.filter(geo => !query || countries[geo].toLowerCase().includes(query) || geo.toLowerCase() === query).map(geo => ({
     geo, eur:euros(geo,period), value:pps(geo,period), prices:pricesAt(geo,period),
@@ -603,14 +612,14 @@ function salaryRanking() {
   exportTable('salary-purchasing-power-' + (period ?? 'unavailable'),
     ['Country','Eurostat geo code','Salary and price level year','Take-home pay (€)','Take-home pay (PPS)','Price level (EU-27=100)','Trend start year','Trend end year','Pay after inflation change (%)','EUR flag','PPS flag','Price level flag','Trend comparability note'],
     [...sorted,euRow].map(row => [countries[row.geo],row.geo,period,row.eur[0],row.value[0],row.prices[0],start,end,row.trend?.realPay,row.eur[1],row.value[1],row.prices[1],row.trend?.issue]));
-  const headers = [['country','Country'],['eur','Pay (€)'],['value','Pay (PPS)'],['prices','Prices (EU = 100)'],['real','Pay after inflation']];
+  const headers = [['country','Country'],['eur','Pay (€)'],['value','Buying power'],['prices','Prices (EU = 100)'],['real','Change after inflation']];
   return `<section class="panel">${title}
     <div class="controls">
     ${select('Countries','salaryScope',[['eu','EU-27'],['all','All covered European countries'],['picked','Countries in my charts']],state.salaryScope)}
     ${select('Pay and price level year','period',periodOptions(periods),state.periods.pay ?? '')}</div>
-    ${coverageNote(result,geos,periods[0],'Some countries are missing a pay or price level figure for this year. Available PPS figures still appear in the ranking.')}
-    <p class="definition">The table shows annual pay and price levels for <strong>${periodText(period)}</strong>. The last column measures how purchasing power changed in <strong>${labelRange}</strong>. <a href="#salary-trends">Change the trend years</a>.</p>
-    <div class="grid salary-ranking"><figure class="subpanel"><figcaption><h3>Annual take-home pay in PPS · ${periodText(period)}</h3></figcaption>
+    ${coverageNote(result,geos,periods[0],'Some countries are missing pay or price figures for this year. Countries with buying power figures still appear in the chart.')}
+    <p class="definition">Pay and prices are for <strong>${periodText(period)}</strong>. The last column shows whether pay bought more or less over <strong>${labelRange}</strong>. <a href="#salary-trends">Change the trend years</a>.</p>
+    <div class="grid salary-ranking"><figure class="subpanel"><figcaption><h3>What take-home pay can buy · ${periodText(period)}</h3></figcaption>
     ${benchmarkReading('PPS',euRow.value)}
     ${rankingChart(ranked.map(row => [row.geo,row.value]),'PPS',euRow.value[0])}</figure>
     <div class="subpanel"><h3>Country table</h3><div class="table-tools"><input class="search" type="search" id="search" aria-label="Find a country" placeholder="Find a country" value="${escape(state.search)}">${exportButton()}</div>
@@ -618,7 +627,7 @@ function salaryRanking() {
     <table><thead><tr>${headers.map(([key,label]) => sortHeader('pay',key,label,sort)).join('')}</tr></thead>
     <tbody>${sorted.map(row => `<tr><th scope="row">${countries[row.geo]}</th>${salaryCells(row)}</tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody>
     <tfoot><tr><th scope="row">EU-27 benchmark</th>${salaryCells(euRow)}</tr></tfoot></table></div>
-    </div></div><p class="definition"><a href="#income">Median household income</a> · <a href="#spend">Household spending</a> · <a href="${methodologyLink}">Methodology</a></p></section>`;
+    </div></div><p class="definition"><a href="#income">Typical household income</a> · <a href="#spend">Household spending</a></p>${details('pay')}</section>`;
 }
 
 function methodology() {
