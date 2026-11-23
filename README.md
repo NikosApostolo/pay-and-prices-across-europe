@@ -2,7 +2,7 @@
 
 **What does a salary buy across Europe?** Explore official Eurostat figures for take-home pay, purchasing power, household spending, price levels, typical household income, inflation, and whether household incomes grew faster than prices. The dashboard works with country selections and has no personal inputs.
 
-**[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and worked salary and spending examples.
+**[Open the public dashboard](https://nikosapostolo.github.io/European-Living-Standards/)** · **[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and worked salary and spending examples.
 
 - **Are salaries keeping up with prices?** Start with Greece and compare take-home pay with consumer prices on the same scale. Pick your own years and add up to four countries.
 - Use Eurostat’s EU-27 benchmark to put salaries, spending, prices and household income in context.
@@ -33,11 +33,13 @@ Open [localhost:8000](http://localhost:8000). The repository includes a validate
 
 ## Daily refresh
 
-**Hosted dashboard.** The site’s daily schedule calls the server’s `refresh_eurostat_snapshot` tool. The Worker fetches Eurostat data, validates it, and publishes it to persistent storage. It uses a conditional write so simultaneous attempts cannot overwrite each other. A failed fetch or validation leaves the previous successful snapshot intact. If you recreate the deployment, enable a daily schedule on the private site with the prompt “Run refresh_eurostat_snapshot, then call get_eurostat_snapshot_status to verify the resulting timestamp and latest periods.” Enable the `BUCKET` R2 binding and `mcp` capability from the hosting manifest. The same server operation also accepts a JSON `POST /refresh` through Sites service access. It returns the new timestamp and latest periods, which can be checked against `GET /snapshot.json`. Keep the Site owner-only so Sites can authorize these update routes. Supply the service credential in the request header at runtime and keep it out of the repository.
+**Public dashboard.** GitHub Actions runs **Refresh and publish dashboard** daily at 11:37 UTC, on pushes to `main`, and on manual runs started under **Actions**. It fetches the full filtered history from Eurostat, validates it, runs the checks, saves the snapshot and publishes the static files to GitHub Pages. If preparation fails, the workflow logs the error and the previous live snapshot stays available. The public site serves files and has no manual refresh route. Manual runs use the repository’s access controls.
 
-**GitHub snapshot.** The `Refresh Eurostat snapshot` workflow runs daily at 11:37 UTC and also supports manual runs. To enable it in a fork, open **Actions**, enable workflows if prompted, and use **Refresh Eurostat snapshot → Run workflow** to verify the first run. The workflow updates the repository’s copy of the snapshot. The hosted dashboard refreshes its own copy independently. The refresh runs on the default branch with permission to commit the new data file. Repository rules that disallow bot commits require a separate publishing branch or a pull-request-based workflow.
+To deploy a fork, choose **Settings → Pages → Build and deployment → Source → GitHub Actions** and run the workflow from the fork’s default branch. If you use another default branch, update the branch references in `.github/workflows/refresh.yml`. The workflow needs permission to commit the snapshot and deploy Pages.
 
-The app displays the last successful snapshot refresh, the period used in each chart, and Eurostat’s source update timestamp separately.
+**Private Sites copy.** The dashboard’s private Sites copy keeps its own daily schedule and persistent snapshot. Its refresh tools and service route use the private site’s authorization. To recreate that deployment, enable the `BUCKET` R2 binding and `mcp` capability from the hosting manifest. The daily task calls `refresh_eurostat_snapshot`, then `get_eurostat_snapshot_status` to verify the new timestamp. Keep service credentials in request headers and outside the repository.
+
+The footer shows the last successful refresh and the latest available data period by topic. Each comparison shows the period used for its selected countries.
 
 ## Project map
 

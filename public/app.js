@@ -113,11 +113,11 @@ function rankingChart(rows, kind, reference) {
         <span class="value">${format(kind, value)}${flags(flag)}</span></button>`;
     }).join('')}</div>`;
 }
-function sortHeader(key, name, label, active) {
+function sortHeader(key, name, label, active, date) {
   const order = active.direction === 1 ? 'ascending' : 'descending';
   const sorted = active.name === name;
   return `<th scope="col"${sorted ? ` aria-sort="${order}"` : ''} class="${name === 'value' ? 'right' : ''}">
-    <button type="button" data-sort="${name}" data-key="${key}">${label}</button></th>`;
+    <button type="button" data-sort="${name}" data-key="${key}">${label}${date ? `<span class="table-period">${escape(date)}</span>` : ''}</button></th>`;
 }
 function addFromRow(geo) {
   const selected = state.picks.includes(geo);
@@ -612,19 +612,21 @@ function salaryRanking() {
   exportTable('salary-purchasing-power-' + (period ?? 'unavailable'),
     ['Country','Eurostat geo code','Salary and price level year','Take-home pay (€)','Take-home pay (PPS)','Price level (EU-27=100)','Trend start year','Trend end year','Pay after inflation change (%)','EUR flag','PPS flag','Price level flag','Trend comparability note'],
     [...sorted,euRow].map(row => [countries[row.geo],row.geo,period,row.eur[0],row.value[0],row.prices[0],start,end,row.trend?.realPay,row.eur[1],row.value[1],row.prices[1],row.trend?.issue]));
-  const headers = [['country','Country'],['eur','Pay (€)'],['value','Buying power'],['prices','Prices (EU = 100)'],['real','Change after inflation']];
+  const levelYear = periodText(period);
+  const headers = [['country','Country'],['eur','Pay (€)',levelYear],['value','Buying power',levelYear],
+    ['prices','Prices (EU = 100)',levelYear],['real','Change after inflation',labelRange]];
   return `<section class="panel">${title}
     <div class="controls">
     ${select('Countries','salaryScope',[['eu','EU-27'],['all','All covered European countries'],['picked','Countries in my charts']],state.salaryScope)}
     ${select('Pay and price level year','period',periodOptions(periods),state.periods.pay ?? '')}</div>
     ${coverageNote(result,geos,periods[0],'Some countries are missing pay or price figures for this year. Countries with buying power figures still appear in the chart.')}
-    <p class="definition">Pay and prices are for <strong>${periodText(period)}</strong>. The last column shows whether pay bought more or less over <strong>${labelRange}</strong>. <a href="#salary-trends">Change the trend years</a>.</p>
+    <p class="definition">Change after inflation shows whether pay bought more or less over ${labelRange}. <a href="#salary-trends">Change the trend years</a>.</p>
     <div class="grid salary-ranking"><figure class="subpanel"><figcaption><h3>What take-home pay can buy · ${periodText(period)}</h3></figcaption>
     ${benchmarkReading('PPS',euRow.value)}
     ${rankingChart(ranked.map(row => [row.geo,row.value]),'PPS',euRow.value[0])}</figure>
     <div class="subpanel"><h3>Country table</h3><div class="table-tools"><input class="search" type="search" id="search" aria-label="Find a country" placeholder="Find a country" value="${escape(state.search)}">${exportButton()}</div>
     <div class="table-scroll ranking growth-table" data-scroll="countries" tabindex="0" role="region" aria-label="Salary purchasing power comparison">
-    <table><thead><tr>${headers.map(([key,label]) => sortHeader('pay',key,label,sort)).join('')}</tr></thead>
+    <table><thead><tr>${headers.map(([key,label,date]) => sortHeader('pay',key,label,sort,date)).join('')}</tr></thead>
     <tbody>${sorted.map(row => `<tr><th scope="row">${countries[row.geo]}</th>${salaryCells(row)}</tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody>
     <tfoot><tr><th scope="row">EU-27 benchmark</th>${salaryCells(euRow)}</tr></tfoot></table></div>
     </div></div><p class="definition"><a href="#income">Typical household income</a> · <a href="#spend">Household spending</a></p>${details('pay')}</section>`;
@@ -668,6 +670,17 @@ function inspectBar(button, moveFocus = false) {
   if (moveFocus) button.focus();
 }
 dashboard.addEventListener('keydown', event => {
+  if (event.target.id === 'salarySearch') {
+    const results = dashboard.querySelectorAll('[data-salary-add]');
+    if (event.key === 'ArrowDown' && results.length) {
+      event.preventDefault();
+      results[0].focus();
+    } else if (event.key === 'Enter' && results.length === 1) {
+      event.preventDefault();
+      results[0].click();
+    }
+    return;
+  }
   if (!event.target.matches('[data-bar]')) return;
   const bars = [...dashboard.querySelectorAll('[data-bar]')];
   const i = bars.indexOf(event.target);
@@ -680,6 +693,7 @@ window.addEventListener('hashchange', () => {
   if (!snapshot || location.hash === '#main') return;
   state.search = '';
   render();
+  document.querySelector('#more-views').open = Boolean(document.querySelector('.other-views [aria-current]'));
   dashboard.querySelector('h2')?.focus({ preventScroll:true });
 });
 dashboard.addEventListener('change', event => {
@@ -778,8 +792,18 @@ try {
   if (!response.ok) throw new Error('Snapshot response ' + response.status);
   snapshot = await response.json();
   if (snapshot.schema !== 1) throw new Error('Unsupported snapshot schema');
+  const freshest = [
+    ['Take-home pay','pay','EUR'], ['Annual consumer prices','annualPrice','TOTAL'], ['Prices across countries','price','E011'],
+    ['Household income (survey year)','income','PPS'], ['Household spending','spend','TOTAL'], ['Monthly inflation','inflation','TOTAL'],
+  ];
+  document.querySelector('#latest-periods').innerHTML = freshest.map(([label,key,code]) => {
+    const [latest] = periodsFor(data(key),read(key,code),allCountries);
+    return `<dt>${label}</dt><dd>${periodText(latest)}</dd>`;
+  }).join('');
+  document.querySelector('#data-periods').hidden = false;
   document.querySelector('#last-refresh').textContent = 'Last successful refresh · ' + dateTime.format(new Date(snapshot.refreshedAt)) + ' Athens time';
   render();
+  document.querySelector('#more-views').open = Boolean(document.querySelector('.other-views [aria-current]'));
 } catch (error) {
   console.error(error);
   dashboard.innerHTML = '<p class="waiting panel" role="alert">The Eurostat snapshot could not be loaded. Reload this page to try again.</p>';

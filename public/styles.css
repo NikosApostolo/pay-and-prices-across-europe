@@ -24,9 +24,17 @@ h1,h2,h3,p,figure{margin:0}
 .status-dot{display:inline-block;width:8px;height:8px;background:#397d64;border-radius:50%;margin-right:6px}
 .hero{margin-top:20px;border-radius:16px;padding:20px 26px;color:white;background:linear-gradient(107deg,#231747,#483276)}
 .hero h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.1;letter-spacing:-.046em;font-weight:760}
-.tabs{display:flex;gap:5px;margin:12px 0 14px;overflow:auto;border-bottom:1px solid #ddd7ea;scrollbar-width:thin}
-.tabs a{flex:none;padding:11px 12px;text-decoration:none;color:#554b68;font-size:.88rem;font-weight:650;white-space:nowrap;border-bottom:3px solid transparent}
-.tabs a:hover,.tabs a[aria-current]{color:#432887;background:#ebe5f9;border-bottom-color:#6b48b8;border-radius:8px 8px 0 0}
+.tabs{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:flex-start;margin:12px 0 14px}
+.main-views,.other-views{display:flex;gap:5px;flex-wrap:wrap}
+.tabs a,.tabs summary{padding:10px 12px;text-decoration:none;color:#483666;font-size:.875rem;font-weight:680;border-radius:8px}
+.main-views a{border:1px solid #dcd2ef;background:#fff}
+.tabs a:hover,.tabs a[aria-current]{color:#432887;background:#ebe5f9}
+.main-views a[aria-current]{background:#533a8c;border-color:#533a8c;color:#fff}
+.tabs details{margin:0;padding:0;border:0}
+.tabs summary{margin:0}
+.tabs details[open] summary{margin:0}
+.other-views{border-top:1px solid var(--line)}
+.table-period{display:block;margin-top:3px;font-size:.8125rem;font-weight:550;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 3px 10px #24154006;padding:24px;min-width:0}
 .waiting{margin-block:18px;line-height:1.6}
 .section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:15px}
@@ -101,7 +109,10 @@ details[open] summary{margin-bottom:10px}
 .trend{display:block;width:100%;height:auto;min-height:190px;overflow:visible}.trend text{font:12px system-ui;fill:#5f5470}.trend-grid{stroke:#e1dbe9}.trend path,.trend circle{vector-effect:non-scaling-stroke}
 .trend-marker{stroke:#443268;stroke-width:1.5;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
 .trend [data-month]{cursor:pointer}
-.footer{display:flex;justify-content:space-between;gap:12px;padding-top:20px;padding-bottom:25px;color:var(--muted);font-size:.83rem}
+.footer{display:flex;justify-content:space-between;gap:12px;padding-top:20px;padding-bottom:25px;color:var(--muted);font-size:.875rem}
+.data-dates details{padding:0;border:0;margin:8px 0 0}
+.data-dates dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;margin:8px 0 0}
+.data-dates dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:900px){.shell{width:calc(100% - 40px)}.panel{padding:19px}.grid{gap:14px}.bar-row{grid-template-columns:minmax(68px,93px) minmax(48px,1fr) minmax(63px,auto);gap:5px}}
 @media(max-width:720px){.grid{grid-template-columns:1fr}.chart-scroll,.table-scroll.ranking{max-height:290px}.grid>.subpanel:nth-child(2){margin-top:4px}.section-heading{flex-wrap:wrap}}
 @media(max-width:600px){.trend{min-height:unset}.trend text{font-size:22px}.trend-tick:nth-of-type(2n){display:none}}

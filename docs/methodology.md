@@ -94,7 +94,7 @@ Eurostat published €38,270.1 million in spending on housing, water, electricit
 
 ## Refreshes and revisions
 
-The daily refresh requests the complete filtered history so it can pick up new periods and changes Eurostat makes to older observations. After validating the filters, units, data and coverage, the app publishes the new snapshot as one update. A failed refresh leaves the last successful snapshot in place. The chart’s observation period, Eurostat’s source update time, and the dashboard’s last successful refresh are shown separately.
+The daily refresh requests the complete filtered history so it can pick up new periods and changes Eurostat makes to older observations. After validating the filters, units, data and coverage, the scheduled GitHub Actions workflow publishes the snapshot with the public dashboard. A failed run is recorded in the workflow log and leaves the previous deployment available. The footer shows the latest period with published figures for each topic and the last successful refresh. Each chart shows the period used for that comparison, and its details give Eurostat’s own source update time.
 
 ## Initial verification
 
