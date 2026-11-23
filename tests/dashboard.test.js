@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { definitions, eu, spending } from '../public/definitions.js';
+import { benchmark, definitions, eu, spending } from '../public/definitions.js';
 import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, sharedSalaryWindow, spendingRecord } from '../public/model.js';
 import { decode, refreshSnapshot } from '../src/eurostat.js';
 import { createWorker, publishSnapshot } from '../src/worker.js';
@@ -226,4 +226,28 @@ test('salary history keeps verified euro-fixed values and blocks incompatible cu
   assert.match(incompatible.issue,/currency change/);
   indicators.pay.series.NAC.EL['2000'][0] *= 340.75;
   assert.equal(salaryTimeline(indicators,'EL','2000','2001').at(-1).realPay,null);
+});
+
+
+test('the EU salary benchmark uses published euro pay and EU prices with the same rules for breaks', () => {
+  const periods = ['2025','2024','2023'];
+  const indicators = {
+    pay:{periods,series:{
+      EUR:{[benchmark]:{2023:[28323.92,''],2024:[28776.80,'b'],2025:[29953.62,'']}},
+      NAC:{EL:{2024:[20041.56,'b'],2025:[21498.27,'']}},
+    }},
+    annualPrice:{periods,series:{TOTAL:{
+      [benchmark]:{2023:[95.12,''],2024:[97.60,''],2025:[100,'']},
+      EL:{2024:[97.19,''],2025:[100,'']},
+    }}},
+  };
+  const [base,end] = salaryTimeline(indicators,benchmark,'2024','2025');
+  assert.equal(base.payIndex,100);
+  assert.equal(base.priceIndex,100);
+  assert.equal(end.payPoint[0],29953.62);
+  assert.ok(Math.abs(end.realPay - 100 * ((29953.62 / 28776.80) / (100 / 97.60) - 1)) < 1e-10);
+  assert.equal(salaryTimeline(indicators,benchmark,'2023','2025').at(-1).realPay,null);
+  delete indicators.pay.series.EUR[benchmark]['2025'];
+  assert.equal(salaryTimeline(indicators,benchmark,'2024','2025').at(-1).realPay,null);
+  assert.ok(salaryTimeline(indicators,'EL','2024','2025').at(-1).realPay > 0);
 });

@@ -50,6 +50,14 @@ From **2024 to 2025**, annual take-home pay rose from **€20,041.56** to **€2
 
 The ranking uses Eurostat’s published annual take-home pay in PPS, which adjusts for differences in local prices. The table shows pay in euros, pay in PPS and the overall household consumer price level (EU-27 = 100) for one shared year. Its last column shows the change in pay after inflation over the separate range selected in Salaries vs prices. These measures describe buying power at a point in time and how it has changed over time.
 
+## EU-27 benchmarks
+
+The benchmarks use Eurostat’s published aggregates for the 27 EU members (`EU27_2020`). They stay the same when countries are added, removed or filtered.
+
+- **Salary vs prices.** The EU-27 chart uses the published aggregate take-home pay in euros and the annual-average EU-27 HICP. Eurostat weights national pay figures by the number of employees. Conversion to euros can bring exchange-rate effects into the EU series. Individual country trends continue to use the national-currency series, including euro-fixed values where published. The benchmark uses the same years, base of 100 and rules for gaps as the countries shown.
+- **Where pay goes furthest and household income.** The dashed line gives the published EU-27 value in PPS for the chosen year. The country ranking uses country values only. The salary table also reports the EU aggregate in euros, the price-level index and the result after inflation for the selected trend years.
+- **Spending, prices and inflation.** The EU spending share divides the EU-wide category expenditure by the EU-wide total, with the same checks as for countries. The price-level benchmark is 100. The dashed inflation line uses the published monthly EU-27 inflation rate.
+
 ## Income vs prices
 
 Median equivalised disposable income is the middle income across people after taxes and including benefits, with household income adjusted for the number and ages of household members. The comparison measures changes in this median across survey years.

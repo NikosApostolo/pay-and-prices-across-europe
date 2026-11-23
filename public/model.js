@@ -1,4 +1,4 @@
-import { spending } from './definitions.js';
+import { benchmark, spending } from './definitions.js';
 
 export const observation = (indicator, series, geo, period) => indicator?.series[series]?.[geo]?.[period] ?? [null, ''];
 export const available = ([value]) => Number.isFinite(value);
@@ -129,16 +129,17 @@ function salaryCurrencyChanges(pay, geo, previous, year) {
 export function salaryTimeline({pay,annualPrice}, geo, start, end) {
   const first = Number(start), last = Number(end);
   if (!(first > 0 && last >= first)) return [];
-  const basePay = observation(pay,'NAC',geo,first);
+  const payUnit = geo === benchmark ? 'EUR' : 'NAC';
+  const basePay = observation(pay,payUnit,geo,first);
   const basePrice = observation(annualPrice,'TOTAL',geo,first);
   let payIssue = '', priceIssue = '', previousPayYear = first;
   const baseAvailable = basePay[0] > 0 && basePrice[0] > 0;
   return Array.from({length:last-first+1}, (_,offset) => {
     const year = first + offset;
-    const payPoint = observation(pay,'NAC',geo,year);
+    const payPoint = observation(pay,payUnit,geo,year);
     const pricePoint = observation(annualPrice,'TOTAL',geo,year);
     if (year > first) {
-      if (!payIssue && (seriesBreak(observation(pay,'NAC',geo,year-1),payPoint) || year === payMethodChanges[geo])) {
+      if (!payIssue && (seriesBreak(observation(pay,payUnit,geo,year-1),payPoint) || year === payMethodChanges[geo])) {
         payIssue = 'Eurostat’s pay series changes in ' + year + '.';
       }
       if (!payIssue && payPoint[0] > 0 && salaryCurrencyChanges(pay,geo,previousPayYear,year)) {

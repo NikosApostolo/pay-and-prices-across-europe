@@ -17,7 +17,7 @@ const dateTime = new Intl.DateTimeFormat('en-GB', { dateStyle:'medium', timeStyl
 const colors = ['#6242a9','#198273','#cb711e','#a34276','#377dc0','#ad583e','#7e8e35','#8868c1','#ca5070','#8c6a3a','#4e6c9f','#558b9d','#9e5ab4'];
 const allCountries = Object.keys(countries).filter(geo => geo !== benchmark);
 const state = {
-  view:'salary-trends', salaryCountries:['EL'], salarySearch:'', salaryScope:'eu', price:'E011', scope:'eu', growthScope:'eu',
+  view:'salary-trends', salaryCountries:['EL'], salarySearch:'', salaryScope:'eu', salaryBenchmark:true, price:'E011', scope:'eu', growthScope:'eu',
   picks:['EL','DE'], periods:{}, sort:{}, search:'', inspected:{}, spendCategory:'CP04',
 };
 let snapshot;
@@ -92,6 +92,10 @@ function viewParameters(key) {
   }
 }
 
+function benchmarkReading(kind, value) {
+  return `<p class="bench"><i class="benchmark-key" aria-hidden="true"></i>EU-27 benchmark · <span>${cell(kind,value)}${kind === 'PPS' && available(value) ? ' PPS' : ''}</span></p>`;
+}
+
 function rankingChart(rows, kind, reference) {
   const values = rows.filter(([, result]) => available(result));
   if (!values.length) return '<p class="missing">Data unavailable</p>';
@@ -104,7 +108,7 @@ function rankingChart(rows, kind, reference) {
       const [value, flag] = result;
       return `<button type="button" class="bar-row" data-bar="${geo}" data-reading="${escape(label(geo, result))}" aria-label="${escape(label(geo, result))}"
         aria-pressed="${geo === active[0]}" tabindex="${geo === active[0] ? 0 : -1}">
-        <span class="country">${countries[geo]}</span><span class="bar-track" aria-hidden="true"><span class="bar" style="width:${100 * value / max}%"></span>${reference != null ? `<i class="line100" style="left:${100 * reference / max}%"></i>` : ''}</span>
+        <span class="country">${countries[geo]}</span><span class="bar-track" aria-hidden="true"><span class="bar" style="width:${100 * value / max}%"></span>${reference != null ? `<i class="benchmark-line" style="left:${100 * reference / max}%"></i>` : ''}</span>
         <span class="value">${format(kind, value)}${flags(flag)}</span></button>`;
     }).join('')}</div>`;
 }
@@ -144,7 +148,7 @@ function ranking(key) {
   const ref = observe(benchmark, period);
   exportTable(key + '-' + code + '-' + (period ?? 'unavailable'),
     ['Country','Eurostat geo code','Observation period','Series','Unit','Value','Eurostat flags','Dataset'],
-    rows.map(([geo,[value, flag]]) => [countries[geo],geo,period,code,unit,value,flag,definitions[key].dataset]));
+    [...rows,[benchmark,ref]].map(([geo,[value, flag]]) => [countries[geo],geo,period,code,unit,value,flag,definitions[key].dataset]));
   const covered = rows.filter(([, result]) => available(result)).length;
   const ranksTitle = key === 'price' ? priceOptions[code] : title;
   return `<section class="panel">${heading(title, sub)}
@@ -158,8 +162,8 @@ function ranking(key) {
     <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Index' : kind,sort)}<th scope="col">Compare</th></tr></thead>
     <tbody>${rows.map(([geo, value]) => `<tr><td>${ranks.get(geo) ?? '—'}</td><th scope="row">${countries[geo]}</th><td class="right">${cell(kind,value)}</td><td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="4">No countries match this search.</td></tr>'}</tbody></table></div></div>
     <figure class="subpanel"><figcaption><h3>${ranksTitle}</h3></figcaption>
-    ${key === 'price' ? (ref[0] === null ? '<p class="definition">EU average: data unavailable.</p>' : '<p class="bench">EU average = ' + ref[0] + flags(ref[1]) + '</p>') : ''}
-    ${rankingChart(rows,kind,key === 'price' ? ref[0] : null)}
+    ${benchmarkReading(kind,ref)}
+    ${rankingChart(rows,kind,ref[0])}
     </figure></div>${details(key)}</section>`;
 }
 
@@ -332,16 +336,19 @@ function spendingView() {
   const records = geos.map(geo => [geo, spendingRecord(indicator,geo,period)]);
   const stacked = records.length > 0 && records.every(([, record]) => record.reconciled);
   const coverage = records.filter(([, record]) => record.known.length > 0).length;
+  const euSpending = spendingRecord(indicator,benchmark,period);
+  const withBenchmark = period ? [...records,[benchmark,euSpending]] : records;
+  const plotted = euSpending.reconciled ? withBenchmark : records;
   const headers = ['Category','Country','Eurostat geo code','Year','Expenditure (million EUR)','Published total (million EUR)','Share (%)','Expenditure flags','Total flags','Dataset'];
-  exportTable('spending-' + (period ?? 'unavailable'), headers, records.flatMap(([geo, record]) =>
+  exportTable('spending-' + (period ?? 'unavailable'), headers, withBenchmark.flatMap(([geo, record]) =>
     record.categories.map(({code,expenditure,share}) => [
       spending[code],countries[geo],geo,period,expenditure[0],record.total[0],share,expenditure[1],record.total[1],definitions.spend.dataset,
     ])));
   const chosen = state.spendCategory;
-  const chart = stacked ? records.map(([geo, record]) =>
-    `<div class="spending-row"><strong>${countries[geo]}${flags(record.total[1])}</strong><div class="spending-stack">${record.categories.map(({code,share,expenditure},i) =>
+  const chart = stacked ? plotted.map(([geo, record]) =>
+    `<div class="spending-row${geo === benchmark ? ' benchmark-spending' : ''}"><strong>${countries[geo]}${flags(record.total[1])}</strong><div class="spending-stack">${record.categories.map(({code,share,expenditure},i) =>
       `<button type="button" tabindex="-1" class="spending-part" data-category="${code}" aria-pressed="${chosen === code}" style="width:${share}%;background:${colors[i]}" aria-label="${countries[geo]} · ${spending[code]} · ${format('spend',share)} ${escape(flagsLabel(expenditure[1]))}"></button>`).join('')}</div></div>`).join('') : '';
-  const rows = Object.entries(spending).map(([,label],index) => [label,...records.map(([, record]) => {
+  const rows = Object.entries(spending).map(([,label],index) => [label,...withBenchmark.map(([, record]) => {
     const entry = record.categories[index];
     return cell('spend',[entry.share, entry.expenditure[1]]) + (record.total[1] && record.total[1] !== entry.expenditure[1] ? flags(record.total[1]) : '');
   })]);
@@ -353,11 +360,12 @@ function spendingView() {
     ${stacked && !state.periods.spend && periods[0] > period ? '<p class="scope-note">The latest year with a full breakdown for these countries is ' + period + '.</p>' : ''}
     ${!stacked && geos.length ? `<p class="notice">${complete ? 'Some categories and totals do not add up as published.' : 'Some countries have gaps in their spending breakdown for this year.'} The table shows all available shares.</p>` : ''}
     ${stacked ? `<figure class="subpanel"><figcaption><h3>Share of total spending</h3></figcaption>${chart}</figure>` : ''}
+    ${period ? '<p class="definition">The EU-27 benchmark uses Eurostat’s EU-wide spending totals.</p>' : ''}
     ${geos.length ? `<div class="chart-inspector">
       ${select('Explore a spending category','spendCategory',Object.entries(spending),chosen)}
-      ${chartReadings(geos,selectedRow.slice(1))}</div>` : ''}
+      ${chartReadings(withBenchmark.map(([geo]) => geo),selectedRow.slice(1))}</div>` : ''}
     <div class="table-tools"><h3>Spending data table</h3>${exportButton()}</div>
-    ${table(['Spending category',...geos.map(geo => countries[geo])],rows,'Spending shares by category')}
+    ${table(['Spending category',...withBenchmark.map(([geo]) => countries[geo])],rows,'Spending shares by category')}
     ${details('spend')}</section>`;
 }
 
@@ -401,7 +409,8 @@ function trendPlot(geos, periods, observe, selectedMonth) {
       points.push(`<circle cx="${px}" cy="${py}" r="${flag ? 4 : 2.5}"><title>${countries[geo]} · ${month(period)} · ${format('inflation', value)}${flag ? ' · ' + escape(flagsLabel(flag)) : ''}</title></circle>`);
       prior = true;
     });
-    return `<g fill="${colors[index]}"><path d="${segments.join(' ')}" fill="none" stroke="${colors[index]}" stroke-width="2.1"/>${points.join('')}</g>`;
+    const color = geo === benchmark ? '#261b44' : colors[index];
+    return `<g fill="${color}"><path d="${segments.join(' ')}" fill="none" stroke="${color}" stroke-width="2.1"${geo === benchmark ? ' stroke-dasharray="7 5"' : ''}/>${points.join('')}</g>`;
   }).join('');
   const mark = x(periods.indexOf(selectedMonth));
   const monthBands = periods.map((period,i) => {
@@ -431,7 +440,7 @@ function inflationView() {
     ${coverageNote(result,state.picks,periods[0],'Some selected countries have no value for the end month. Missing months leave gaps in the chart.')}
     ${meta('inflation',range,unitNames.inflation,state.picks.filter(geo => available(observe(geo,end))).length,state.picks.length)}
     <p class="definition">Coverage above refers to the end month. The EU-27 line uses the published aggregate. Gaps mark months without data.</p>
-    <div class="legend">${active.map((geo,index) => `<span><i class="swatch" style="background:${colors[index]}"></i>${countries[geo]}</span>`).join('')}</div>
+    <div class="legend">${active.map((geo,index) => `<span>${geo === benchmark ? '<i class="benchmark-key" aria-hidden="true"></i>' : `<i class="swatch" style="background:${colors[index]}"></i>`}${countries[geo]}</span>`).join('')}</div>
     ${trendPlot(active,window,observe,selectedMonth)}
     ${window.length ? `<div class="chart-inspector">
       ${select('Explore a month','inflationMonth',[...window].reverse().map(period => [period,month(period)]),selectedMonth)}
@@ -509,7 +518,8 @@ function salaryTrends() {
   const yearOptions = list => list.map(year => [year,year]);
   const displayedYears = years.filter(year => year >= start && year <= end);
   const inspect = displayedYears.includes(state.salaryInspect) ? state.salaryInspect : end;
-  const series = geos.map(geo => [geo,salaryTimeline(snapshot.indicators,geo,start,end)]);
+  const chartGeos = state.salaryBenchmark && geos.length ? [...geos,benchmark] : geos;
+  const series = chartGeos.map(geo => [geo,salaryTimeline(snapshot.indicators,geo,start,end)]);
   const points = series.flatMap(([,rows]) => rows.flatMap(row => [row.payIndex,row.priceIndex])).filter(Number.isFinite);
   const low = Math.min(100,...points), high = Math.max(100,...points);
   const step = Math.max(5,Math.ceil((high-low)/25)*5);
@@ -523,13 +533,14 @@ function salaryTrends() {
     '<p class="scope-note">Four countries selected. Remove one to add another.</p>';
 
   exportTable('salary-vs-prices-' + start + '-' + end,
-    ['Country','Eurostat geo code','Base year','Year','Take-home pay in national or euro-fixed currency','Annual-average HICP','Take-home pay index','Consumer price index','Pay after inflation change (%)','Pay flag','Price flag','Comparability note'],
-    series.flatMap(([geo,rows]) => rows.map(row => [countries[geo],geo,start,row.year,row.payPoint[0],row.pricePoint[0],row.payIndex,row.priceIndex,row.realPay,row.payPoint[1],row.pricePoint[1],row.issue])));
+    ['Country','Eurostat geo code','Base year','Year','Pay series currency code','Take-home pay','Annual-average HICP','Take-home pay index','Consumer price index','Pay after inflation change (%)','Pay flag','Price flag','Comparability note'],
+    series.flatMap(([geo,rows]) => rows.map(row => [countries[geo],geo,start,row.year,geo === benchmark ? 'EUR' : 'NAC',row.payPoint[0],row.pricePoint[0],row.payIndex,row.priceIndex,row.realPay,row.payPoint[1],row.pricePoint[1],row.issue])));
 
   return `<section class="panel">${title}
     <div class="controls salary-controls">${add}
     ${select('Start year','salaryStart',yearOptions(years.filter(year => year < end)),start)}
     ${select('End year','salaryEnd',yearOptions(years.filter(year => year > start)),end)}
+    <label class="benchmark-toggle"><input id="salaryBenchmark" type="checkbox"${state.salaryBenchmark ? ' checked' : ''}> Show EU-27 benchmark</label>
     ${state.salaryRange ? '<button type="button" data-salary-preset="latest">Latest comparable years</button>' : ''}
     ${previous && !state.salaryRange ? `<button type="button" data-salary-preset="${previous.start},${previous.end}">Earlier history (${previous.start}–${previous.end})</button>` : ''}
     </div>
@@ -545,13 +556,14 @@ function salaryTrends() {
       const point = rows.find(row => row.year === inspect);
       const covered = rows.filter(row => row.realPay !== null);
       const coverage = covered.length ? `${covered[0].year}–${covered.at(-1).year} · ${covered.length} of ${rows.length} years with both series` : 'No comparable years in this range';
-      return `<figure class="salary-card"><figcaption><h3>${countries[geo]}</h3><p class="salary-summary">${escape(salarySummary(rows,start,end))}</p></figcaption>
+      return `<figure class="salary-card${geo === benchmark ? ' salary-benchmark' : ''}"><figcaption><h3>${geo === benchmark ? 'EU-27 benchmark' : countries[geo]}</h3><p class="salary-summary">${escape(salarySummary(rows,start,end))}</p></figcaption>
         <p class="salary-coverage">${coverage}</p>
         ${rows.some(row => row.payIndex !== null || row.priceIndex !== null) ? salaryPlot(rows,{min,max,ticks},inspect) : ''}
         ${point ? `<div class="salary-reading" aria-live="polite"><strong>${point.year}</strong>
           <span class="pay-reading">Take-home pay ${cell('price',[point.payIndex,point.payPoint[1]])}</span>
           <span class="price-reading">Consumer prices ${cell('price',[point.priceIndex,point.pricePoint[1]])}</span>
           ${point.issue ? `<p class="missing">${escape(point.issue)}</p>` : ''}</div>` : ''}
+        ${geo === benchmark ? '<p class="salary-coverage salary-benchmark-note">Eurostat’s weighted EU-27 pay in euros and EU-27 consumer prices.</p>' : ''}
         </figure>`;
     }).join('')}</div>
     <p class="definition"><a href="${browserLink(definitions.pay.dataset)}">Eurostat take-home pay</a> · <a href="${browserLink(definitions.annualPrice.dataset)}">Eurostat annual prices</a> · <a href="${methodologyLink}#salaries-vs-prices">Methodology</a></p>
@@ -584,9 +596,13 @@ function salaryRanking() {
   });
   const ranked = [...rows].sort((a,b) => (b.value[0] ?? -Infinity)-(a.value[0] ?? -Infinity) || nameSort(a.geo,b.geo));
   const labelRange = start && end ? start + '–' + end : 'unavailable';
+  const euRow = { geo:benchmark, eur:euros(benchmark,period), value:pps(benchmark,period), prices:pricesAt(benchmark,period),
+    trend:salaryTimeline(snapshot.indicators,benchmark,start,end).at(-1) };
+  const salaryCells = row => `<td>${cell('EUR',row.eur)}</td><td class="real-change">${cell('PPS',row.value)}</td><td>${cell('price',row.prices)}</td>
+    <td>${row.trend?.realPay == null ? `<span class="missing" title="${escape(row.trend?.issue)}">Data unavailable</span>` : changeLabel(row.trend.realPay)}</td>`;
   exportTable('salary-purchasing-power-' + (period ?? 'unavailable'),
     ['Country','Eurostat geo code','Salary and price level year','Take-home pay (€)','Take-home pay (PPS)','Price level (EU-27=100)','Trend start year','Trend end year','Pay after inflation change (%)','EUR flag','PPS flag','Price level flag','Trend comparability note'],
-    sorted.map(row => [countries[row.geo],row.geo,period,row.eur[0],row.value[0],row.prices[0],start,end,row.trend?.realPay,row.eur[1],row.value[1],row.prices[1],row.trend?.issue]));
+    [...sorted,euRow].map(row => [countries[row.geo],row.geo,period,row.eur[0],row.value[0],row.prices[0],start,end,row.trend?.realPay,row.eur[1],row.value[1],row.prices[1],row.trend?.issue]));
   const headers = [['country','Country'],['eur','Pay (€)'],['value','Pay (PPS)'],['prices','Prices (EU = 100)'],['real','Pay after inflation']];
   return `<section class="panel">${title}
     <div class="controls">
@@ -595,13 +611,13 @@ function salaryRanking() {
     ${coverageNote(result,geos,periods[0],'Some countries are missing a pay or price level figure for this year. Available PPS figures still appear in the ranking.')}
     <p class="definition">The table shows annual pay and price levels for <strong>${periodText(period)}</strong>. The last column measures how purchasing power changed in <strong>${labelRange}</strong>. <a href="#salary-trends">Change the trend years</a>.</p>
     <div class="grid salary-ranking"><figure class="subpanel"><figcaption><h3>Annual take-home pay in PPS · ${periodText(period)}</h3></figcaption>
-    ${rankingChart(ranked.map(row => [row.geo,row.value]),'PPS',null)}</figure>
+    ${benchmarkReading('PPS',euRow.value)}
+    ${rankingChart(ranked.map(row => [row.geo,row.value]),'PPS',euRow.value[0])}</figure>
     <div class="subpanel"><h3>Country table</h3><div class="table-tools"><input class="search" type="search" id="search" aria-label="Find a country" placeholder="Find a country" value="${escape(state.search)}">${exportButton()}</div>
     <div class="table-scroll ranking growth-table" data-scroll="countries" tabindex="0" role="region" aria-label="Salary purchasing power comparison">
     <table><thead><tr>${headers.map(([key,label]) => sortHeader('pay',key,label,sort)).join('')}</tr></thead>
-    <tbody>${sorted.map(row => `<tr><th scope="row">${countries[row.geo]}</th>
-      <td>${cell('EUR',row.eur)}</td><td class="real-change">${cell('PPS',row.value)}</td><td>${cell('price',row.prices)}</td>
-      <td>${row.trend?.realPay == null ? `<span class="missing" title="${escape(row.trend?.issue)}">Data unavailable</span>` : changeLabel(row.trend.realPay)}</td></tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody></table></div>
+    <tbody>${sorted.map(row => `<tr><th scope="row">${countries[row.geo]}</th>${salaryCells(row)}</tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody>
+    <tfoot><tr><th scope="row">EU-27 benchmark</th>${salaryCells(euRow)}</tr></tfoot></table></div>
     </div></div><p class="definition"><a href="#income">Median household income</a> · <a href="#spend">Household spending</a> · <a href="${methodologyLink}">Methodology</a></p></section>`;
 }
 
@@ -659,7 +675,10 @@ window.addEventListener('hashchange', () => {
 });
 dashboard.addEventListener('change', event => {
   const { value, id } = event.target;
-  if (id === 'salaryStart' || id === 'salaryEnd') {
+  if (id === 'salaryBenchmark') {
+    state.salaryBenchmark = event.target.checked;
+    rerender(() => document.getElementById(id));
+  } else if (id === 'salaryStart' || id === 'salaryEnd') {
     const {range} = salaryWindow();
     state.salaryRange = {...range,[id === 'salaryStart' ? 'start' : 'end']:value};
     rerender(() => document.getElementById(id));

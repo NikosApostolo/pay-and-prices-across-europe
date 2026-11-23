@@ -1,14 +1,18 @@
-earn_nt_net 12 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_nt_net/A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL?format=TSV&startPeriod=2024&endPeriod=2025
+earn_nt_net 16 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_nt_net/A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL+EU27_2020?format=TSV&startPeriod=2024&endPeriod=2025
 pay	EUR	DE	2024	35482.87	b
 pay	EUR	DE	2025	36534.77
 pay	EUR	EL	2024	20041.56	b
 pay	EUR	EL	2025	21498.27
+pay	EUR	EU27_2020	2024	28776.8	b
+pay	EUR	EU27_2020	2025	29953.62
 pay	EUR	NL	2024	38838.45	b
 pay	EUR	NL	2025	40793.43
 pay	PPS	DE	2024	32662.17	b
 pay	PPS	DE	2025	33630.45
 pay	PPS	EL	2024	23316.15	b
 pay	PPS	EL	2025	25010.87
+pay	PPS	EU27_2020	2024	28180.88	b
+pay	PPS	EU27_2020	2025	29350.21
 pay	PPS	NL	2024	33483.44	b
 pay	PPS	NL	2025	35168.88
 earn_nt_net 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_nt_net/A.NAC.NET.P1_NCH_AW100.EL+BE?format=TSV&startPeriod=2023&endPeriod=2025
@@ -18,30 +22,39 @@ pay	NAC	BE	2025	36414.44
 pay	NAC	EL	2023	18022.41
 pay	NAC	EL	2024	20041.56	b
 pay	NAC	EL	2025	21498.27
-prc_hicp_ainr 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_ainr/A.INX_A_AVG.TOTAL.EL+BE?format=TSV&startPeriod=2023&endPeriod=2025
+prc_hicp_ainr 9 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_ainr/A.INX_A_AVG.TOTAL.EL+BE+EU27_2020?format=TSV&startPeriod=2023&endPeriod=2025
 annualPrice	TOTAL	BE	2023	93.05
 annualPrice	TOTAL	BE	2024	97.06
 annualPrice	TOTAL	BE	2025	100
 annualPrice	TOTAL	EL	2023	94.37
 annualPrice	TOTAL	EL	2024	97.19
 annualPrice	TOTAL	EL	2025	100
-nama_10_cp18 18 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/nama_10_cp18/A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR?format=TSV&startPeriod=2023&endPeriod=2024
+annualPrice	TOTAL	EU27_2020	2023	95.12
+annualPrice	TOTAL	EU27_2020	2024	97.6
+annualPrice	TOTAL	EU27_2020	2025	100
+nama_10_cp18 24 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/nama_10_cp18/A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR+EU27_2020?format=TSV&startPeriod=2023&endPeriod=2024
 spend	CP01	DE	2023	237128	p
 spend	CP01	DE	2024	257495	p
 spend	CP01	EL	2023	27114.7
 spend	CP01	EL	2024	28080.1	p
+spend	CP01	EU27_2020	2023	1183868.5
+spend	CP01	EU27_2020	2024	1237323.1
 spend	CP01	FR	2023	185063.6
 spend	CP01	FR	2024	187816.5	p
 spend	CP04	DE	2023	536427	p
 spend	CP04	DE	2024	551473	p
 spend	CP04	EL	2023	36684.9
 spend	CP04	EL	2024	38270.1	p
+spend	CP04	EU27_2020	2023	2159845.8
+spend	CP04	EU27_2020	2024	2239944.1
 spend	CP04	FR	2023	403982.6
 spend	CP04	FR	2024	423739.3	p
 spend	TOTAL	DE	2023	2161230	p
 spend	TOTAL	DE	2024	2243023	p
 spend	TOTAL	EL	2023	171268.3
 spend	TOTAL	EL	2024	178902.8	p
+spend	TOTAL	EU27_2020	2023	9016567.4
+spend	TOTAL	EU27_2020	2024	9427293.5
 spend	TOTAL	FR	2023	1496572.9
 spend	TOTAL	FR	2024	1543501.9	p
 prc_ppp_ind_1 30 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_ppp_ind_1/A.PLI_EU27_2020.E011+A010101+A0104+A010405+A0107.EL+DE+EU27_2020?format=TSV&startPeriod=2024&endPeriod=2025
@@ -109,4 +122,6 @@ Income vs prices 2024 RO {"nominal":5.045268126595981,"priceChange":5.8424680754
 Income vs prices 2024 SK {"nominal":null,"priceChange":3.150537634408601,"value":null,"incomeFlags":["","b"],"priceFlags":["",""],"incomeIssue":"A break in the income series prevents comparing these years.","priceIssue":""}
 Salary vs prices EL 2024 2025 {"year":"2025","payIndex":107.2684461688611,"priceIndex":102.89124395513942,"realPay":4.254202831516118,"payPoint":[21498.27,""],"pricePoint":[100,""],"issue":""}
 Salary vs prices BE 2024 2025 {"year":"2025","payIndex":100.84046552097507,"priceIndex":103.0290541932825,"realPay":-2.1242441653415933,"payPoint":[36414.44,""],"pricePoint":[100,""],"issue":""}
+Salary vs prices EU27_2020 2024 2025 {"year":"2025","payIndex":104.0894748547441,"priceIndex":102.45901639344264,"realPay":1.5913274582302295,"payPoint":[29953.62,""],"pricePoint":[100,""],"issue":""}
+Salary vs prices EU27_2020 2023 2025 {"year":"2025","payIndex":null,"priceIndex":105.13036164844407,"realPay":null,"payPoint":[29953.62,""],"pricePoint":[100,""],"issue":"Eurostat’s pay series changes in 2024."}
 Salary vs prices EL 2023 2025 {"year":"2025","payIndex":null,"priceIndex":105.96587898696619,"realPay":null,"payPoint":[21498.27,""],"pricePoint":[100,""],"issue":"Eurostat’s pay series changes in 2024."}

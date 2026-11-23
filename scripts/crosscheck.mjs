@@ -5,10 +5,10 @@ import { incomePriceChange, observation, salaryTimeline, spendingRecord } from '
 
 const snapshot = JSON.parse(await readFile(new URL('../public/snapshot.json',import.meta.url),'utf8'));
 const pairs = [
-  ['pay','A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL','currency',['2024','2025']],
+  ['pay','A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL+EU27_2020','currency',['2024','2025']],
   ['pay','A.NAC.NET.P1_NCH_AW100.EL+BE','currency',['2023','2024','2025']],
-  ['annualPrice','A.INX_A_AVG.TOTAL.EL+BE','coicop18',['2023','2024','2025']],
-  ['spend','A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR','coicop18',['2023','2024']],
+  ['annualPrice','A.INX_A_AVG.TOTAL.EL+BE+EU27_2020','coicop18',['2023','2024','2025']],
+  ['spend','A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR+EU27_2020','coicop18',['2023','2024']],
   ['price','A.PLI_EU27_2020.E011+A010101+A0104+A010405+A0107.EL+DE+EU27_2020','ppp_cat18',['2024','2025']],
   ['income','A.TOTAL.T.MED_EI.PPS.EL+DE+EU27_2020','unit',['2023','2024']],
   ['inflation','M.RCH_A.TOTAL.EL+DE+EU27_2020','coicop18',['2025-10','2026-10']],
@@ -61,7 +61,7 @@ for (const geo of ['EL','RO','SK']) {
   console.log('Income vs prices 2024',geo,JSON.stringify(row));
 }
 
-for (const [geo,start,end,expectedDirection] of [['EL','2024','2025',1],['BE','2024','2025',-1],['EL','2023','2025',null]]) {
+for (const [geo,start,end,expectedDirection] of [['EL','2024','2025',1],['BE','2024','2025',-1],['EU27_2020','2024','2025',1],['EU27_2020','2023','2025',null],['EL','2023','2025',null]]) {
   const row = salaryTimeline(snapshot.indicators,geo,start,end).at(-1);
   assert.equal(row.realPay === null ? null : Math.sign(row.realPay),expectedDirection);
   console.log('Salary vs prices',geo,start,end,JSON.stringify(row));

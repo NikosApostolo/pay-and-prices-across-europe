@@ -62,8 +62,9 @@ thead button{font-size:inherit;color:inherit;border:0;padding:0;background:none;
 .bar{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#a58adb,#7252bb);border-radius:3px}
 .bar-row[aria-pressed=true] .bar{background:linear-gradient(90deg,#7252bb,#53328e)}
 .bar-row .value{text-align:right;font-variant-numeric:tabular-nums}
-.line100{position:absolute;inset:-5px auto -5px;z-index:1;border-left:2px dashed #261b44}
-.bench{border-left:2px dashed #261b44;padding-left:8px;color:#4f4464;font-size:.84rem;margin:8px 0}
+.benchmark-line{position:absolute;inset:-5px auto -5px;z-index:1;border-left:2px dashed #261b44}
+.bench{display:flex;align-items:baseline;gap:5px;color:#4f4464;font-size:.875rem;margin:8px 0}
+.benchmark-key{display:inline-block;align-self:center;width:18px;border-top:2px dashed #261b44;margin-right:2px}
 .filter-row,.picks{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.filter-row{margin:8px 0 11px}
 .picks:empty{display:none}.chip{font-size:.875rem;padding:5px 10px;border-radius:20px;background:#fff;color:#463077;min-height:34px}
 .search{font-size:.875rem;padding:8px 10px;border:1px solid #d9d3e5;border-radius:8px;min-width:0;max-width:100%}
@@ -92,6 +93,7 @@ summary{cursor:pointer;font-weight:680;font-size:.9rem;color:#4d3979}
 details[open] summary{margin-bottom:10px}
 .spending-stack{display:flex;gap:1px;height:30px;background:#f5f1fa;border-radius:5px;overflow:hidden;min-width:0}
 .spending-part{border:0;border-radius:0;padding:0;min-width:0;flex-shrink:1}.spending-part[aria-pressed=true]{box-shadow:inset 0 0 0 2px #20143d,inset 0 0 0 4px #fff}
+.benchmark-spending{border-top:1px solid var(--line);padding-top:12px}
 .spending-row{margin:14px 0;display:grid;grid-template-columns:minmax(100px,165px) minmax(0,1fr);align-items:center;gap:13px}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0;color:#514762;font-size:.82rem}
 .legend span{display:inline-flex;gap:6px;align-items:center}.swatch{width:11px;height:11px;border-radius:2px;flex:none}
@@ -131,12 +133,22 @@ details[open] summary{margin-bottom:10px}
 @media(max-width:900px){.growth-row{grid-template-columns:90px minmax(0,1fr) 58px;gap:5px}}
 @media(max-width:720px){.growth-grid{grid-template-columns:1fr}}
 .salary-results{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.benchmark-toggle{display:inline-flex;align-items:center;gap:8px;min-height:38px;font-size:.875rem;font-weight:650;cursor:pointer}
+.benchmark-toggle input{width:18px;height:18px;accent-color:#5b37a5}
 .salary-picks{margin:2px 0 14px}
 .salary-inspect{margin:12px 0 16px}
 .salary-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .salary-cards:has(.salary-card:only-child){grid-template-columns:minmax(0,850px)}
 .salary-card{padding:17px 19px;border:1px solid var(--edge,#e5dff0);border-radius:14px;min-width:0;background:#fdfcff}
 .salary-card h3{margin:0 0 6px}
+.salary-benchmark{background:#f5f1fc}
+.salary-benchmark .salary-benchmark-note{grid-row:5}
+.salary-ranking tfoot :is(th,td){position:sticky;bottom:0;background:#f1eafa;border-top:1px solid #d9cbef;font-weight:650}
+@media(min-width:761px){
+  .salary-card{display:grid;grid-template-rows:subgrid;row-gap:0;grid-row:span 5}
+  .salary-plot{grid-row:3}
+  .salary-reading{grid-row:4}
+}
 .salary-summary{margin:0;line-height:1.45;font-weight:600}
 .salary-coverage{margin:7px 0 0;font-size:.875rem;color:var(--muted)}
 .salary-plot{display:block;width:100%;height:auto;margin:8px 0 0;font-size:15px;overflow:visible}
