@@ -2,7 +2,7 @@
 
 **What does a salary buy across Europe?** Explore official Eurostat figures for take-home pay, purchasing power, household spending, price levels, typical household income, inflation, and whether household incomes grew faster than prices. The dashboard works with country selections and has no personal inputs.
 
-**[Open the public dashboard](https://nikosapostolo.github.io/European-Living-Standards/)** · **[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and worked salary and spending examples.
+**[Open the public dashboard](https://nikosapostolo.github.io/pay-and-prices-across-europe/)** · **[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and worked salary and spending examples.
 
 - **Are salaries keeping up with prices?** Start with Greece and compare take-home pay with consumer prices on the same scale. Pick your own years and add up to four countries.
 - Use Eurostat’s EU-27 benchmark to put salaries, spending, prices and household income in context.
@@ -16,8 +16,8 @@
 Install Node.js 22 or later. The project uses built-in Node and browser APIs, so it needs no package installation.
 
 ```bash
-git clone https://github.com/NikosApostolo/European-Living-Standards.git
-cd European-Living-Standards
+git clone https://github.com/NikosApostolo/pay-and-prices-across-europe.git
+cd pay-and-prices-across-europe
 npm start
 ```
 
