@@ -1,4 +1,4 @@
-# European Living Standards Dashboard
+# Pay & Prices Across Europe
 
 **What does a salary buy across Europe?** Explore official Eurostat figures for take-home pay, purchasing power, household spending, price levels, typical household income, inflation, and whether household incomes grew faster than prices. The dashboard works with country selections and has no personal inputs.
 
