@@ -83,7 +83,7 @@ export function validate(snapshot, previous) {
       const oldCount = publishedCount(previous?.indicators[key]?.series[seriesKey]);
       const count = publishedCount(countries);
       insist(count > 0 && count >= 0.8 * oldCount, definition.dataset + ' unexpectedly lost coverage for ' + seriesKey);
-      if (key === 'income') {
+      if (key === 'income' || (key === 'pay' && seriesKey === 'NAC')) {
         insist(eu.filter(geo => publishedCount({[geo]:countries[geo]})).length >= 24,
           definition.dataset + ' has insufficient EU coverage for ' + seriesKey);
       }

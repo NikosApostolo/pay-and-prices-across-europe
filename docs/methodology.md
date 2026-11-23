@@ -1,10 +1,10 @@
 # Methodology
 
-The dashboard compares pay, spending, prices and income across countries. Income vs prices compares changes over the same calendar year. It uses Eurostat’s Statistics API for the dashboard snapshot and Eurostat’s Data Browser TSV download format to cross-check published observations. The dashboard records each API query and its source timestamp alongside the values and flags.
+The dashboard compares pay, spending, prices and income across countries. The two salary views show what pay buys across countries and how it has changed over time. The separate household income view uses survey-based income data. It uses Eurostat’s Statistics API for the dashboard snapshot and Eurostat’s Data Browser TSV download format to cross-check published observations. The dashboard records each API query and its source timestamp alongside the values and flags.
 
 | View | Eurostat dataset and exact selection |
 | --- | --- |
-| Take-home pay | [earn_nt_net](https://ec.europa.eu/eurostat/databrowser/view/earn_nt_net/default/table?lang=en). Annual, `estruct=NET`, `ecase=P1_NCH_AW100`, `currency=EUR` or `PPS`. A modelled, single worker without children at 100% of the country’s average wage. Eurostat deducts income tax and employee social contributions and includes family allowances where applicable. The PPS series is taken directly from this dataset. |
+| Take-home pay | [earn_nt_net](https://ec.europa.eu/eurostat/databrowser/view/earn_nt_net/default/table?lang=en). Annual, `estruct=NET`, `ecase=P1_NCH_AW100`, `currency=EUR`, `PPS` and `NAC`. A modelled, single worker without children at 100% of the country’s average wage. Eurostat deducts income tax and employee social contributions and includes family allowances where applicable. The PPS series is taken directly from this dataset. |
 | Household spending | [nama_10_cp18](https://ec.europa.eu/eurostat/databrowser/view/nama_10_cp18/default/table?lang=en). Annual, `unit=CP_MEUR`, `coicop18=TOTAL` and divisions `CP01` through `CP13`. Data use current prices in million euros. The domestic basis includes spending by visitors and excludes residents’ spending abroad. `CP04` includes the rental value imputed to owner-occupied housing. |
 | Price levels | [prc_ppp_ind_1](https://ec.europa.eu/eurostat/databrowser/view/prc_ppp_ind_1/default/table?lang=en). Annual, `indic_ppp=PLI_EU27_2020`. `E011` household final consumption expenditure, `A010101` food, `A0104` housing, water, electricity, gas and other fuels, `A010405` electricity, gas and other fuels, and `A0107` transport. A value of 120 is 20% above the EU-27 benchmark for that category and year. |
 | Household income | [ilc_di03](https://ec.europa.eu/eurostat/databrowser/view/ilc_di03/default/table?lang=en). Annual, `age=TOTAL`, `sex=T`, `statinfo=MED_EI`, units `PPS`, `NAC` and `EUR`. Disposable household income is adjusted for household size and composition before taking the median across people. Income generally refers to the calendar year before the survey year. The Household income tab uses PPS. Income vs prices uses national currency for growth and uses the euro series to check for currency changes. |
@@ -15,7 +15,7 @@ The dashboard compares pay, spending, prices and income across countries. Income
 
 These are the requests used to build and refresh the snapshot. The repeated filters select each listed unit or category in a single request.
 
-- [earn_nt_net · Annual take-home pay](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_nt_net?lang=EN&freq=A&currency=EUR&currency=PPS&estruct=NET&ecase=P1_NCH_AW100)
+- [earn_nt_net · Annual take-home pay](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_nt_net?lang=EN&freq=A&currency=EUR&currency=PPS&currency=NAC&estruct=NET&ecase=P1_NCH_AW100)
 - [nama_10_cp18 · How households spend](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_cp18?lang=EN&freq=A&unit=CP_MEUR&coicop18=TOTAL&coicop18=CP01&coicop18=CP02&coicop18=CP03&coicop18=CP04&coicop18=CP05&coicop18=CP06&coicop18=CP07&coicop18=CP08&coicop18=CP09&coicop18=CP10&coicop18=CP11&coicop18=CP12&coicop18=CP13)
 - [prc_ppp_ind_1 · Consumer price levels](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_ppp_ind_1?lang=EN&freq=A&indic_ppp=PLI_EU27_2020&ppp_cat18=E011&ppp_cat18=A010101&ppp_cat18=A0104&ppp_cat18=A010405&ppp_cat18=A0107)
 - [ilc_di03 · Median disposable income](https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_di03?lang=EN&freq=A&age=TOTAL&sex=T&statinfo=MED_EI&unit=PPS&unit=NAC&unit=EUR)
@@ -27,6 +27,28 @@ These are the requests used to build and refresh the snapshot. The repeated filt
 The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.
 
 Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`.
+
+## Salaries vs prices
+
+For each country and calendar year, the dashboard pairs the annual net salary in Eurostat’s national-currency series (`earn_nt_net`, `NAC`) with the annual-average all-items Harmonised Index of Consumer Prices (`prc_hicp_ainr`, `INX_A_AVG`, `TOTAL`). The modeled salary is for a single worker without children earning their country’s average wage. The price series tracks an average basket of goods and services.
+
+- **Take-home pay index** is `100 × (pay in the selected year ÷ pay in the start year)`.
+- **Consumer price index** is `100 × (annual-average HICP in the selected year ÷ annual-average HICP in the start year)`.
+- **Pay after inflation** is `100 × [(pay in the selected year ÷ pay in the start year) ÷ (HICP in the selected year ÷ HICP in the start year) − 1]`.
+
+The same start year and chart scale apply to every selected country. The default opens on Greece and selects the latest uninterrupted stretch comparable across the chosen countries. The earlier-history shortcut opens the preceding comparable stretch. The year controls give access to the full matched history, including missing periods. A missing observation leaves a gap. A break makes the affected series unavailable relative to the original start year from that boundary onward. Starting at the boundary allows comparison within the new series. Each chart gives its actual coverage and the CSV preserves the inputs, flags, calculated values and any comparability notes.
+
+Eurostat switched the earnings model from the OECD to the Joint Research Centre for 2024 and flags the affected observations. The dashboard also blocks comparisons across the earlier provider changes documented by Eurostat (2005 for Cyprus, Estonia, Latvia, Lithuania and Malta, 2008 for Bulgaria and Romania, and 2013 for Croatia). A break flag (`b`) on the newer value or a definition difference (`d`) at either end blocks the affected change. Estimates and provisional figures retain their flags. [Eurostat earnings metadata](https://ec.europa.eu/eurostat/cache/metadata/en/earn_net_esms.htm)
+
+Euro-area values can be published on a euro-fixed basis. When a comparison crosses euro adoption, the app checks that the national-currency and euro observations on both sides are consistent with that scale. Both must be published, and the national-currency value must be within 10% of the euro value to allow for differences between the historic market rate and the fixed conversion rate. The calculation continues to use Eurostat’s national-currency series. Türkiye’s published values change scale at the 2004 observation, so the dashboard blocks comparisons across that boundary. [Euro adoption dates](https://economy-finance.ec.europa.eu/euro/what-euro-area_en) · [Central Bank of Türkiye on the redenomination](https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Banknotes/From+the+New+Turkish+Lira+to+the+Turkish+Lira/)
+
+### Worked example for Greece
+
+From **2024 to 2025**, annual take-home pay rose from **€20,041.56** to **€21,498.27**, or **7.27%**. Annual-average HICP rose from **97.19** to **100.00**, or **2.89%**. Pay after inflation rose **4.25%**, calculated as `100 × [(21,498.27 ÷ 20,041.56) ÷ (100.00 ÷ 97.19) − 1]`. [Verified source cells](crosscheck.tsv)
+
+## Where a salary goes furthest
+
+The ranking uses Eurostat’s published annual take-home pay in PPS, which adjusts for differences in local prices. The table shows pay in euros, pay in PPS and the overall household consumer price level (EU-27 = 100) for one shared year. Its last column shows the change in pay after inflation over the separate range selected in Salaries vs prices. These measures describe buying power at a point in time and how it has changed over time.
 
 ## Income vs prices
 

@@ -1,5 +1,5 @@
 import { benchmark, browserLink, countries, definitions, eu, prices, spending } from './definitions.js';
-import { available, choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, spendingRecord } from './model.js';
+import { available, choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, salaryYears, sharedSalaryWindow, spendingRecord } from './model.js';
 
 const dashboard = document.querySelector('#dashboard');
 const methodologyLink = document.querySelector('.method-link').href;
@@ -17,7 +17,7 @@ const dateTime = new Intl.DateTimeFormat('en-GB', { dateStyle:'medium', timeStyl
 const colors = ['#6242a9','#198273','#cb711e','#a34276','#377dc0','#ad583e','#7e8e35','#8868c1','#ca5070','#8c6a3a','#4e6c9f','#558b9d','#9e5ab4'];
 const allCountries = Object.keys(countries).filter(geo => geo !== benchmark);
 const state = {
-  view:'pay', currency:'EUR', price:'E011', scope:'eu', growthScope:'eu',
+  view:'salary-trends', salaryCountries:['EL'], salarySearch:'', salaryScope:'eu', price:'E011', scope:'eu', growthScope:'eu',
   picks:['EL','DE'], periods:{}, sort:{}, search:'', inspected:{}, spendCategory:'CP04',
 };
 let snapshot;
@@ -85,9 +85,6 @@ function table(headers, rows, caption) {
 }
 function viewParameters(key) {
   switch (key) {
-    case 'pay': return { code:state.currency, kind:state.currency, title:definitions.pay.title, sub:plain.pay,
-      extra:`<div class="segment" role="group" aria-label="Earnings unit" aria-describedby="pay-units">${['EUR','PPS'].map(unit =>
-        `<button type="button" data-unit="${unit}" aria-pressed="${unit === state.currency}">${unit}</button>`).join('')}</div>` };
     case 'price': return { code:state.price, kind:key, title:'How prices compare', sub:plain.price,
       extra:select('What to compare','price',Object.entries(priceOptions),state.price) };
     case 'income': return { code:'PPS', kind:'PPS', title:definitions.income.title, sub:plain.income + ' PPS accounts for local prices. The survey usually reports income from the previous year.', extra:'' };
@@ -151,11 +148,7 @@ function ranking(key) {
   const covered = rows.filter(([, result]) => available(result)).length;
   const ranksTitle = key === 'price' ? priceOptions[code] : title;
   return `<section class="panel">${heading(title, sub)}
-    ${key === 'pay' ? `<div class="pay-units">${extra}<div id="pay-units" class="definition">
-      <p><strong>EUR</strong> shows annual take-home pay in euros.</p>
-      <p><strong>PPS</strong> adjusts for differences in local prices so you can compare how much that pay can buy.</p>
-    </div></div>` : ''}
-    <div class="controls">${scopeControl()}${select(key === 'income' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${key === 'pay' ? '' : extra}</div>
+    <div class="controls">${scopeControl()}${select(key === 'income' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${extra}</div>
     ${coverageNote(result, geos, periods[0])}
     ${meta(key, periodText(period), unit, covered, rows.length, key === 'income' ? 'Survey year ' : '')}
     ${selectionBar()}
@@ -164,10 +157,9 @@ function ranking(key) {
     <div class="table-scroll ranking" data-scroll="countries" tabindex="0" role="region" aria-label="Sortable country comparison">
     <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Index' : kind,sort)}<th scope="col">Compare</th></tr></thead>
     <tbody>${rows.map(([geo, value]) => `<tr><td>${ranks.get(geo) ?? '—'}</td><th scope="row">${countries[geo]}</th><td class="right">${cell(kind,value)}</td><td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="4">No countries match this search.</td></tr>'}</tbody></table></div></div>
-    <figure class="subpanel"><figcaption><h3>${ranksTitle}${key === 'pay' ? ' in ' + kind : ''}</h3></figcaption>
+    <figure class="subpanel"><figcaption><h3>${ranksTitle}</h3></figcaption>
     ${key === 'price' ? (ref[0] === null ? '<p class="definition">EU average: data unavailable.</p>' : '<p class="bench">EU average = ' + ref[0] + flags(ref[1]) + '</p>') : ''}
     ${rankingChart(rows,kind,key === 'price' ? ref[0] : null)}
-    ${key === 'pay' ? `<p class="definition">EU average · ${cell(kind, ref)} ${ref[0] !== null && kind === 'PPS' ? 'PPS' : ''}</p>` : ''}
     </figure></div>${details(key)}</section>`;
 }
 
@@ -450,6 +442,169 @@ function inflationView() {
     ${details('inflation')}</section>`;
 }
 
+function salaryWindow() {
+  const years = salaryYears(snapshot.indicators);
+  const geos = state.salaryCountries;
+  const latest = sharedSalaryWindow(snapshot.indicators,geos);
+  const fallback = latest ?? sharedSalaryWindow(snapshot.indicators,[geos[0] ?? 'EL']);
+  return { years, latest, range:state.salaryRange ?? fallback ?? {start:years[0],end:years.at(-1)} };
+}
+
+function salarySummary(series, start, end) {
+  const last = series.at(-1);
+  if (!last || last.realPay === null) return (last?.issue ?? 'Data unavailable.') + ' Choose another date range to measure the change.';
+  const prices = Math.abs(last.priceIndex - 100) < 0.05 ? 'were broadly unchanged' : describeChange(last.priceIndex - 100);
+  return `From ${start} to ${end}, take-home pay ${describeChange(last.payIndex - 100)}, prices ${prices}, and purchasing power ${describeChange(last.realPay)}.`;
+}
+
+function salaryPlot(series, domain, inspectYear) {
+  const left = 51, right = 392, top = 20, bottom = 183;
+  const x = i => left + i * (right-left) / Math.max(1,series.length-1);
+  const y = value => bottom - (value-domain.min)*(bottom-top)/(domain.max-domain.min);
+  const selected = series.findIndex(point => point.year === inspectYear);
+  const guides = domain.ticks.map(value => `<line x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}" class="salary-gridline"/>
+    <text x="${left-6}" y="${y(value)+5}" text-anchor="end">${decimal.format(value)}</text>`).join('');
+  const timeLabels = [...new Set([0,Math.round((series.length-1)/2),series.length-1])].map(i =>
+    `<text x="${x(i)}" y="208" text-anchor="middle">${series[i].year}</text>`).join('');
+  const lines = [['payIndex','Take-home pay','pay-line'],['priceIndex','Consumer prices','price-line']].map(([key,label,style]) => {
+    let path = '', connected = false, last = -1;
+    const dots = [];
+    series.forEach((point,i) => {
+      if (point[key] === null) { connected = false; return; }
+      const px = x(i), py = y(point[key]);
+      path += (connected ? 'L' : 'M') + px + ' ' + py;
+      dots.push(`<circle cx="${px}" cy="${py}" r="${i === selected ? 4 : 2}" />`);
+      connected = true;
+      last = i;
+    });
+    return {label,style,last, endY:last < 0 ? 0 : y(series[last][key]), path,dots};
+  }).filter(line => line.last >= 0).sort((a,b) => a.endY-b.endY);
+  const shapes = lines.map((line,i) => {
+    const near = lines.length === 2 && Math.abs(lines[0].endY-lines[1].endY) < 22;
+    const labelY = near ? Math.min(bottom-11,Math.max(top+11,(lines[0].endY+lines[1].endY)/2)) + (i ? 11 : -11) : line.endY;
+    return `<g class="${line.style}"><path class="salary-path" d="${line.path}"/>${line.dots.join('')}
+      <path class="salary-leader" d="M${x(line.last)} ${line.endY}L${right+12} ${labelY}"/>
+      <text x="${right+16}" y="${labelY+5}">${line.label}</text></g>`;
+  }).join('');
+  const hits = series.map((point,i) => {
+    const start = i ? (x(i-1)+x(i))/2 : left;
+    const end = i === series.length-1 ? right : (x(i)+x(i+1))/2;
+    return `<rect data-salary-year="${point.year}" x="${start}" y="${top}" width="${end-start}" height="${bottom-top}" fill="transparent"/>`;
+  }).join('');
+  return `<svg class="salary-plot" viewBox="0 0 550 220" role="img" aria-label="Take-home pay and consumer prices indexed to 100 in the start year">
+    ${guides}${timeLabels}
+    ${selected < 0 ? '' : `<line x1="${x(selected)}" x2="${x(selected)}" y1="${top}" y2="${bottom}" class="trend-marker"/>`}
+    ${shapes}${hits}</svg>`;
+}
+
+function salaryTrends() {
+  const { years, latest, range } = salaryWindow();
+  const {start,end} = range;
+  const title = heading('Are salaries keeping up with prices?',
+    'Eurostat models take-home pay for a single worker without children who earns their country’s average wage.');
+  if (!years.length) return `<section class="panel">${title}<p class="notice">Data unavailable. Salary history will appear after the next successful refresh.</p></section>`;
+
+  const geos = state.salaryCountries;
+  const previous = latest ? sharedSalaryWindow(snapshot.indicators,geos,String(Number(latest.start)-1)) : null;
+  const yearOptions = list => list.map(year => [year,year]);
+  const displayedYears = years.filter(year => year >= start && year <= end);
+  const inspect = displayedYears.includes(state.salaryInspect) ? state.salaryInspect : end;
+  const series = geos.map(geo => [geo,salaryTimeline(snapshot.indicators,geo,start,end)]);
+  const points = series.flatMap(([,rows]) => rows.flatMap(row => [row.payIndex,row.priceIndex])).filter(Number.isFinite);
+  const low = Math.min(100,...points), high = Math.max(100,...points);
+  const step = Math.max(5,Math.ceil((high-low)/25)*5);
+  const min = Math.floor(low/step)*step, max = Math.max(min+step,Math.ceil(high/step)*step);
+  const ticks = Array.from({length:Math.round((max-min)/step)+1},(_,i) => min+step*i);
+  const query = state.salarySearch.trim().toLowerCase();
+  const options = query ? allCountries.filter(geo => !geos.includes(geo) && hasAny('pay','NAC',geo) &&
+    (countries[geo].toLowerCase().includes(query) || geo.toLowerCase() === query)).sort(nameSort) : [];
+  const add = geos.length < 4 ? `<label class="control">Add a country
+    <input type="search" id="salarySearch" class="search" placeholder="Search countries" value="${escape(state.salarySearch)}" autocomplete="off"></label>` :
+    '<p class="scope-note">Four countries selected. Remove one to add another.</p>';
+
+  exportTable('salary-vs-prices-' + start + '-' + end,
+    ['Country','Eurostat geo code','Base year','Year','Take-home pay in national or euro-fixed currency','Annual-average HICP','Take-home pay index','Consumer price index','Pay after inflation change (%)','Pay flag','Price flag','Comparability note'],
+    series.flatMap(([geo,rows]) => rows.map(row => [countries[geo],geo,start,row.year,row.payPoint[0],row.pricePoint[0],row.payIndex,row.priceIndex,row.realPay,row.payPoint[1],row.pricePoint[1],row.issue])));
+
+  return `<section class="panel">${title}
+    <div class="controls salary-controls">${add}
+    ${select('Start year','salaryStart',yearOptions(years.filter(year => year < end)),start)}
+    ${select('End year','salaryEnd',yearOptions(years.filter(year => year > start)),end)}
+    ${state.salaryRange ? '<button type="button" data-salary-preset="latest">Latest comparable years</button>' : ''}
+    ${previous && !state.salaryRange ? `<button type="button" data-salary-preset="${previous.start},${previous.end}">Earlier history (${previous.start}–${previous.end})</button>` : ''}
+    </div>
+    ${query && geos.length < 4 ? `<div class="salary-results">${options.length ?
+      options.map(geo => `<button type="button" data-salary-add="${geo}">Add ${countries[geo]}</button>`).join('') : '<p class="missing">No matching countries with salary data.</p>'}</div>` : ''}
+    <div class="picks salary-picks" aria-label="Countries in the charts">${geos.map(geo =>
+      `<button type="button" class="chip" data-salary-remove="${geo}" aria-label="Remove ${countries[geo]} from chart">${countries[geo]} <span aria-hidden="true">×</span></button>`).join('')}</div>
+    <p class="definition">Both lines start at 100 in ${start}. A value of 120 means a 20% rise since that year. The charts use the same scale.</p>
+    ${geos.length && !latest && !state.salaryRange ? '<p class="notice">These countries have no shared stretch of comparable data. Choose dates to see which figures are available.</p>' : ''}
+    ${geos.length ? `<div class="table-tools salary-inspect">${select('Inspect year','salaryInspect',yearOptions(displayedYears),inspect)}${exportButton()}</div>` :
+      '<p class="notice">Add a country to see its salary and price history.</p>'}
+    <div class="salary-cards">${series.map(([geo,rows]) => {
+      const point = rows.find(row => row.year === inspect);
+      const covered = rows.filter(row => row.realPay !== null);
+      const coverage = covered.length ? `${covered[0].year}–${covered.at(-1).year} · ${covered.length} of ${rows.length} years with both series` : 'No comparable years in this range';
+      return `<figure class="salary-card"><figcaption><h3>${countries[geo]}</h3><p class="salary-summary">${escape(salarySummary(rows,start,end))}</p></figcaption>
+        <p class="salary-coverage">${coverage}</p>
+        ${rows.some(row => row.payIndex !== null || row.priceIndex !== null) ? salaryPlot(rows,{min,max,ticks},inspect) : ''}
+        ${point ? `<div class="salary-reading" aria-live="polite"><strong>${point.year}</strong>
+          <span class="pay-reading">Take-home pay ${cell('price',[point.payIndex,point.payPoint[1]])}</span>
+          <span class="price-reading">Consumer prices ${cell('price',[point.priceIndex,point.pricePoint[1]])}</span>
+          ${point.issue ? `<p class="missing">${escape(point.issue)}</p>` : ''}</div>` : ''}
+        </figure>`;
+    }).join('')}</div>
+    <p class="definition"><a href="${browserLink(definitions.pay.dataset)}">Eurostat take-home pay</a> · <a href="${browserLink(definitions.annualPrice.dataset)}">Eurostat annual prices</a> · <a href="${methodologyLink}#salaries-vs-prices">Methodology</a></p>
+    </section>`;
+}
+
+function salaryRanking() {
+  const {range:{start,end}} = salaryWindow();
+  const euros = read('pay','EUR'), pps = read('pay','PPS'), pricesAt = read('price','E011');
+  const options = allCountries.filter(geo => hasAny('pay','PPS',geo)).sort(nameSort);
+  const geos = state.salaryScope === 'picked' ? state.salaryCountries : state.salaryScope === 'all' ? options : eu;
+  const periods = periodsFor(data('pay'),pps,options);
+  const allMeasures = (geo,year) => [euros(geo,year),pps(geo,year),pricesAt(geo,year)].every(available);
+  const result = choosePeriod(periods,(geo,year) => [allMeasures(geo,year) ? 1 : null,''],geos,state.periods.pay);
+  const {period} = result;
+  const title = heading('Where does a salary go furthest?',
+    'PPS adjusts for differences in local price levels so you can compare what salaries buy across countries.');
+  const query = state.search.trim().toLowerCase();
+  const rows = geos.filter(geo => !query || countries[geo].toLowerCase().includes(query) || geo.toLowerCase() === query).map(geo => ({
+    geo, eur:euros(geo,period), value:pps(geo,period), prices:pricesAt(geo,period),
+    trend:salaryTimeline(snapshot.indicators,geo,start,end).at(-1),
+  }));
+  const sort = state.sort.pay ?? {name:'value',direction:-1};
+  const sorted = [...rows].sort((a,b) => {
+    if (sort.name === 'country') return sort.direction * nameSort(a.geo,b.geo);
+    const readSort = row => sort.name === 'real' ? row.trend?.realPay : row[sort.name][0];
+    const x = readSort(a), y = readSort(b);
+    if (x == null || y == null) return Number(y != null)-Number(x != null) || nameSort(a.geo,b.geo);
+    return sort.direction*(x-y) || nameSort(a.geo,b.geo);
+  });
+  const ranked = [...rows].sort((a,b) => (b.value[0] ?? -Infinity)-(a.value[0] ?? -Infinity) || nameSort(a.geo,b.geo));
+  const labelRange = start && end ? start + '–' + end : 'unavailable';
+  exportTable('salary-purchasing-power-' + (period ?? 'unavailable'),
+    ['Country','Eurostat geo code','Salary and price level year','Take-home pay (€)','Take-home pay (PPS)','Price level (EU-27=100)','Trend start year','Trend end year','Pay after inflation change (%)','EUR flag','PPS flag','Price level flag','Trend comparability note'],
+    sorted.map(row => [countries[row.geo],row.geo,period,row.eur[0],row.value[0],row.prices[0],start,end,row.trend?.realPay,row.eur[1],row.value[1],row.prices[1],row.trend?.issue]));
+  const headers = [['country','Country'],['eur','Pay (€)'],['value','Pay (PPS)'],['prices','Prices (EU = 100)'],['real','Pay after inflation']];
+  return `<section class="panel">${title}
+    <div class="controls">
+    ${select('Countries','salaryScope',[['eu','EU-27'],['all','All covered European countries'],['picked','Countries in my charts']],state.salaryScope)}
+    ${select('Pay and price level year','period',periodOptions(periods),state.periods.pay ?? '')}</div>
+    ${coverageNote(result,geos,periods[0],'Some countries are missing a pay or price level figure for this year. Available PPS figures still appear in the ranking.')}
+    <p class="definition">The table shows annual pay and price levels for <strong>${periodText(period)}</strong>. The last column measures how purchasing power changed in <strong>${labelRange}</strong>. <a href="#salary-trends">Change the trend years</a>.</p>
+    <div class="grid salary-ranking"><figure class="subpanel"><figcaption><h3>Annual take-home pay in PPS · ${periodText(period)}</h3></figcaption>
+    ${rankingChart(ranked.map(row => [row.geo,row.value]),'PPS',null)}</figure>
+    <div class="subpanel"><h3>Country table</h3><div class="table-tools"><input class="search" type="search" id="search" aria-label="Find a country" placeholder="Find a country" value="${escape(state.search)}">${exportButton()}</div>
+    <div class="table-scroll ranking growth-table" data-scroll="countries" tabindex="0" role="region" aria-label="Salary purchasing power comparison">
+    <table><thead><tr>${headers.map(([key,label]) => sortHeader('pay',key,label,sort)).join('')}</tr></thead>
+    <tbody>${sorted.map(row => `<tr><th scope="row">${countries[row.geo]}</th>
+      <td>${cell('EUR',row.eur)}</td><td class="real-change">${cell('PPS',row.value)}</td><td>${cell('price',row.prices)}</td>
+      <td>${row.trend?.realPay == null ? `<span class="missing" title="${escape(row.trend?.issue)}">Data unavailable</span>` : changeLabel(row.trend.realPay)}</td></tr>`).join('') || '<tr><td colspan="5">No countries match this selection.</td></tr>'}</tbody></table></div>
+    </div></div><p class="definition"><a href="#income">Median household income</a> · <a href="#spend">Household spending</a> · <a href="${methodologyLink}">Methodology</a></p></section>`;
+}
+
 function methodology() {
   return `<section class="panel">${heading('Methodology','See the definitions, Eurostat queries, and comparison rules.')}
     <a href="${methodologyLink}">Full methodology on GitHub</a></section>`;
@@ -457,13 +612,13 @@ function methodology() {
 
 function render() {
   const view = location.hash.slice(1);
-  state.view = ['pay','price','income','income-prices','spend','inflation','compare','method'].includes(view) ? view : 'pay';
+  state.view = ['salary-trends','pay','price','income','income-prices','spend','inflation','compare','method'].includes(view) ? view : 'salary-trends';
   document.querySelectorAll('[data-view]').forEach(tab => {
     if (tab.dataset.view === state.view) tab.setAttribute('aria-current','page');
     else tab.removeAttribute('aria-current');
   });
   currentExport = null;
-  const renderers = { compare:comparison, spend:spendingView, inflation:inflationView, method:methodology, 'income-prices':incomeVsPrices };
+  const renderers = { 'salary-trends':salaryTrends, pay:salaryRanking, compare:comparison, spend:spendingView, inflation:inflationView, method:methodology, 'income-prices':incomeVsPrices };
   dashboard.innerHTML = renderers[state.view]?.() ?? ranking(state.view);
 }
 function rerender(focus) {
@@ -504,29 +659,39 @@ window.addEventListener('hashchange', () => {
 });
 dashboard.addEventListener('change', event => {
   const { value, id } = event.target;
-  if (id === 'add-country') {
+  if (id === 'salaryStart' || id === 'salaryEnd') {
+    const {range} = salaryWindow();
+    state.salaryRange = {...range,[id === 'salaryStart' ? 'start' : 'end']:value};
+    rerender(() => document.getElementById(id));
+  } else if (id === 'add-country') {
     if (value && state.picks.length < 4 && !state.picks.includes(value)) state.picks.push(value);
     rerender(() => document.querySelector('#add-country') ?? dashboard.querySelector('.chip:last-child'));
   } else if (id === 'period') {
     state.periods[state.view] = value;
     if (state.view === 'inflation') state.inflationMonth = '';
     rerender(() => document.querySelector('#period'));
-  } else if (['scope','growthScope','price','trendLength','spendCategory','inflationMonth'].includes(id)) {
+  } else if (['scope','growthScope','salaryScope','salaryInspect','price','trendLength','spendCategory','inflationMonth'].includes(id)) {
     state[id] = value;
     if (['scope','price'].includes(id)) state.periods[state.view] = '';
     rerender(() => document.getElementById(id));
   }
 });
 dashboard.addEventListener('input', event => {
-  if (event.target.id !== 'search') return;
-  const { selectionStart, selectionEnd } = event.target;
-  state.search = event.target.value;
+  const {id, value, selectionStart, selectionEnd} = event.target;
+  if (id !== 'search' && id !== 'salarySearch') return;
+  state[id] = value;
   render();
-  const input = document.querySelector('#search');
+  const input = document.getElementById(id);
   input.focus({ preventScroll:true });
   input.setSelectionRange(selectionStart, selectionEnd);
 });
 dashboard.addEventListener('click', event => {
+  const salaryPoint = event.target.closest('[data-salary-year]');
+  if (salaryPoint) {
+    state.salaryInspect = salaryPoint.dataset.salaryYear;
+    rerender(() => document.getElementById('salaryInspect'));
+    return;
+  }
   const band = event.target.closest('[data-month]');
   if (band) {
     state.inflationMonth = band.dataset.month;
@@ -535,10 +700,20 @@ dashboard.addEventListener('click', event => {
   }
   const button = event.target.closest('button');
   if (!button) return;
-  const { unit, sort, key, remove, pick, bar, category, growthCountry, growthScope } = button.dataset;
-  if (unit) {
-    state.currency = unit;
-    rerender(() => dashboard.querySelector('[data-unit="' + unit + '"]'));
+  const { sort, key, remove, pick, bar, category, growthCountry, growthScope, salaryAdd, salaryRemove, salaryPreset } = button.dataset;
+  if (salaryAdd || salaryRemove) {
+    if (salaryAdd && state.salaryCountries.length < 4 && !state.salaryCountries.includes(salaryAdd)) {
+      state.salaryCountries.push(salaryAdd);
+      state.salarySearch = '';
+    } else if (salaryRemove) {
+      state.salaryCountries = state.salaryCountries.filter(geo => geo !== salaryRemove);
+    }
+    rerender(() => document.getElementById('salarySearch') ?? dashboard.querySelector('[data-salary-remove]'));
+  } else if (salaryPreset) {
+    const [start,end] = salaryPreset.split(',');
+    state.salaryRange = end ? {start,end} : null;
+    state.salaryInspect = null;
+    rerender(() => document.getElementById('salaryStart'));
   } else if (sort) {
     const old = state.sort[key] ?? { name:'value', direction:-1 };
     state.sort[key] = { name:sort, direction:old.name === sort ? -old.direction : sort === 'country' ? 1 : -1 };

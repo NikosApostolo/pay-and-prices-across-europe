@@ -40,7 +40,7 @@ export const scenario = 'Single worker without children earning 100% of the nati
 export const definitions = {
   pay: {
     dataset:'earn_nt_net', title:'Annual take-home pay', selector:'currency',
-    filters:{freq:'A', currency:['EUR','PPS'], estruct:'NET', ecase:'P1_NCH_AW100'},
+    filters:{freq:'A', currency:['EUR','PPS','NAC'], estruct:'NET', ecase:'P1_NCH_AW100'},
     description:'Modelled net earnings after income tax and employee social contributions. The scenario uses each country’s own average wage. Eurostat’s published PPS figures adjust for differences in local price levels.',
   },
   spend: {

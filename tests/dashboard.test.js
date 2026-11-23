@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { definitions, eu, spending } from '../public/definitions.js';
-import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, spendingRecord } from '../public/model.js';
+import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, sharedSalaryWindow, spendingRecord } from '../public/model.js';
 import { decode, refreshSnapshot } from '../src/eurostat.js';
 import { createWorker, publishSnapshot } from '../src/worker.js';
 
@@ -54,7 +54,7 @@ test('flags survive parsing and confidential values stay blank', () => {
   assert.deepEqual(series.EUR.AT['2025'],[10,'b']);
   assert.equal(flagsLabel('ep'),'Estimated, Provisional');
   assert.equal(csvText(['geo','value','flag'],[['AT',null,'|C']]),'"geo","value","flag"\r\n"AT",,"|C"\r\n');
-  payload.dimension.currency.category.index = { EUR:0, USD:1 };
+  payload.dimension.currency.category.index = { EUR:0, PPS:1, USD:2 };
   assert.throws(() => decode(payload,definitions.pay),/filter mismatch/);
 });
 
@@ -173,4 +173,57 @@ test('legacy snapshots refresh without an occupation request', async () => {
   assert.ok(updated.indicators.annualPrice && updated.indicators.income.series.NAC);
   assert.ok(!Object.hasOwn(updated.indicators,'occupation'));
   assert.ok(endpoints.every(url => !url.includes('earn_ses_hourly')));
+});
+
+
+test('salary and prices use a common base and purchasing power uses the ratio of growth factors', () => {
+  const periods = ['2025','2024','2023'];
+  const indicators = {
+    pay:{ periods, series:{ NAC:{
+      EL:{ 2023:[95,''],2024:[100,'b'],2025:[120,'p'] },
+      BE:{ 2023:[95,''],2024:[100,'b'],2025:[106,''] },
+    } } },
+    annualPrice:{ periods, series:{ TOTAL:{
+      EL:{ 2023:[90,''],2024:[100,''],2025:[115,''] },
+      BE:{ 2023:[90,''],2024:[100,''],2025:[115,''] },
+    } } },
+  };
+  const [base,growth] = salaryTimeline(indicators,'EL','2024','2025');
+  assert.deepEqual([base.payIndex,base.priceIndex,base.realPay],[100,100,0]);
+  assert.equal(growth.payIndex,120);
+  assert.ok(Math.abs(growth.priceIndex-115) < 1e-10);
+  assert.ok(Math.abs(growth.realPay - 100*(1.2/1.15-1)) < 1e-10);
+  assert.equal(growth.payPoint[1],'p');
+  assert.ok(salaryTimeline(indicators,'BE','2024','2025').at(-1).realPay < 0);
+  assert.deepEqual(sharedSalaryWindow(indicators,['EL','BE']),{start:'2024',end:'2025'});
+
+  const [first,boundary,last] = salaryTimeline(indicators,'EL','2023','2025');
+  assert.equal(first.payIndex,100);
+  assert.equal(boundary.payIndex,null);
+  assert.equal(last.realPay,null);
+  assert.ok(last.priceIndex > 100);
+  assert.match(last.issue,/2024/);
+
+  delete indicators.annualPrice.series.TOTAL.BE['2025'];
+  const missing = salaryTimeline(indicators,'BE','2024','2025').at(-1);
+  assert.equal(missing.priceIndex,null);
+  assert.equal(missing.realPay,null);
+  assert.equal(sharedSalaryWindow(indicators,['EL','BE']),null);
+});
+
+test('salary history keeps verified euro-fixed values and blocks incompatible currency scales', () => {
+  const periods = ['2004','2003','2002','2001','2000'];
+  const indicators = {
+    pay:{periods,series:{
+      NAC:{EL:{2000:[11973.81,''],2001:[12064.95,'']},TR:{2003:[8874436608,''],2004:[9708.37,'']}},
+      EUR:{EL:{2000:[12120.36,''],2001:[12064.95,'']}},
+    }},
+    annualPrice:{periods,series:{TOTAL:{EL:{2000:[50,''],2001:[51,'']},TR:{2003:[3.11,''],2004:[3.42,'']}}}},
+  };
+  assert.ok(salaryTimeline(indicators,'EL','2000','2001').at(-1).payIndex > 100);
+  const incompatible = salaryTimeline(indicators,'TR','2003','2004').at(-1);
+  assert.equal(incompatible.payIndex,null);
+  assert.match(incompatible.issue,/currency change/);
+  indicators.pay.series.NAC.EL['2000'][0] *= 340.75;
+  assert.equal(salaryTimeline(indicators,'EL','2000','2001').at(-1).realPay,null);
 });

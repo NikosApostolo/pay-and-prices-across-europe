@@ -11,6 +11,20 @@ pay	PPS	EL	2024	23316.15	b
 pay	PPS	EL	2025	25010.87
 pay	PPS	NL	2024	33483.44	b
 pay	PPS	NL	2025	35168.88
+earn_nt_net 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/earn_nt_net/A.NAC.NET.P1_NCH_AW100.EL+BE?format=TSV&startPeriod=2023&endPeriod=2025
+pay	NAC	BE	2023	35438.98
+pay	NAC	BE	2024	36110.94	b
+pay	NAC	BE	2025	36414.44
+pay	NAC	EL	2023	18022.41
+pay	NAC	EL	2024	20041.56	b
+pay	NAC	EL	2025	21498.27
+prc_hicp_ainr 6 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/prc_hicp_ainr/A.INX_A_AVG.TOTAL.EL+BE?format=TSV&startPeriod=2023&endPeriod=2025
+annualPrice	TOTAL	BE	2023	93.05
+annualPrice	TOTAL	BE	2024	97.06
+annualPrice	TOTAL	BE	2025	100
+annualPrice	TOTAL	EL	2023	94.37
+annualPrice	TOTAL	EL	2024	97.19
+annualPrice	TOTAL	EL	2025	100
 nama_10_cp18 18 cells verified https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/nama_10_cp18/A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR?format=TSV&startPeriod=2023&endPeriod=2024
 spend	CP01	DE	2023	237128	p
 spend	CP01	DE	2024	257495	p
@@ -93,3 +107,6 @@ Greece 2024 housing share: 38270.1 /  178902.8 × 100 = 21.39156010973557
 Income vs prices 2024 EL {"nominal":7.834101382488479,"priceChange":2.988237787432446,"value":4.7052592598563425,"incomeFlags":["",""],"priceFlags":["",""],"incomeIssue":"","priceIssue":""}
 Income vs prices 2024 RO {"nominal":5.045268126595981,"priceChange":5.84246807548876,"value":-0.7531947840862863,"incomeFlags":["",""],"priceFlags":["",""],"incomeIssue":"","priceIssue":""}
 Income vs prices 2024 SK {"nominal":null,"priceChange":3.150537634408601,"value":null,"incomeFlags":["","b"],"priceFlags":["",""],"incomeIssue":"A break in the income series prevents comparing these years.","priceIssue":""}
+Salary vs prices EL 2024 2025 {"year":"2025","payIndex":107.2684461688611,"priceIndex":102.89124395513942,"realPay":4.254202831516118,"payPoint":[21498.27,""],"pricePoint":[100,""],"issue":""}
+Salary vs prices BE 2024 2025 {"year":"2025","payIndex":100.84046552097507,"priceIndex":103.0290541932825,"realPay":-2.1242441653415933,"payPoint":[36414.44,""],"pricePoint":[100,""],"issue":""}
+Salary vs prices EL 2023 2025 {"year":"2025","payIndex":null,"priceIndex":105.96587898696619,"realPay":null,"payPoint":[21498.27,""],"pricePoint":[100,""],"issue":"Eurostat’s pay series changes in 2024."}

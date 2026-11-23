@@ -130,3 +130,34 @@ details[open] summary{margin-bottom:10px}
 .real-change{font-weight:700;background:#f6f2fd}
 @media(max-width:900px){.growth-row{grid-template-columns:90px minmax(0,1fr) 58px;gap:5px}}
 @media(max-width:720px){.growth-grid{grid-template-columns:1fr}}
+.salary-results{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.salary-picks{margin:2px 0 14px}
+.salary-inspect{margin:12px 0 16px}
+.salary-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.salary-cards:has(.salary-card:only-child){grid-template-columns:minmax(0,850px)}
+.salary-card{padding:17px 19px;border:1px solid var(--edge,#e5dff0);border-radius:14px;min-width:0;background:#fdfcff}
+.salary-card h3{margin:0 0 6px}
+.salary-summary{margin:0;line-height:1.45;font-weight:600}
+.salary-coverage{margin:7px 0 0;font-size:.875rem;color:var(--muted)}
+.salary-plot{display:block;width:100%;height:auto;margin:8px 0 0;font-size:15px;overflow:visible}
+.salary-plot text{fill:var(--muted)}
+.salary-plot .pay-line{color:#5b37a5}
+.salary-plot .price-line{color:#8e492f}
+.salary-plot .pay-line text,.salary-plot .price-line text{fill:currentColor;font-weight:650;font-size:16px}
+.salary-path,.salary-leader{stroke:currentColor;fill:none;vector-effect:non-scaling-stroke}
+.salary-path{stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.salary-leader{stroke-width:1;stroke-dasharray:3 4;opacity:.55}
+.salary-plot circle{fill:currentColor}
+.salary-gridline{stroke:#ded7e8;vector-effect:non-scaling-stroke}
+.salary-plot [data-salary-year]{cursor:pointer}
+.salary-reading{display:flex;align-items:baseline;flex-wrap:wrap;gap:7px 14px;border-top:1px solid #e5dff0;padding-top:10px}
+.salary-reading p{flex-basis:100%;margin:0}
+.pay-reading{color:#5b37a5}.price-reading{color:#8e492f}
+.salary-ranking{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);margin-top:15px}
+@media(max-width:760px){
+  .salary-cards,.salary-ranking{grid-template-columns:1fr}
+  .salary-card{padding:12px 10px}
+  .salary-plot text {font-size:19px}
+  .salary-plot .pay-line text,.salary-plot .price-line text{font-size:18px}
+  .salary-controls .control:first-child{min-width:min(190px,100%)}
+}

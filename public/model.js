@@ -105,3 +105,69 @@ export function incomePriceChange({income,annualPrice}, geo, year) {
   const value = incomeIssue || priceIssue ? null : rate(nextPrice[0] / priorPrice[0],nextIncome[0] / priorIncome[0]);
   return { nominal, priceChange, value, incomeFlags, priceFlags, incomeIssue, priceIssue };
 }
+
+const payMethodChanges = { EE:2005, CY:2005, LV:2005, LT:2005, MT:2005, BG:2008, RO:2008, HR:2013 };
+
+export function salaryYears({pay,annualPrice}) {
+  if (!pay?.series.NAC || !annualPrice) return [];
+  const priceYears = new Set(annualPrice.periods);
+  return pay.periods.filter(year => priceYears.has(year)).sort();
+}
+
+function salaryCurrencyChanges(pay, geo, previous, year) {
+  const adoption = geo === 'EL' ? 2001 : euroAdoption[geo];
+  if (geo === 'TR' && previous < 2004 && year >= 2004) return true;
+  if (!(previous < adoption && year >= adoption)) return false;
+  // Check that the published NAC values around euro adoption are on the euro-fixed scale.
+  return [previous,year].some(period => {
+    const nominal = observation(pay,'NAC',geo,period)[0];
+    const euros = observation(pay,'EUR',geo,period)[0];
+    return !(nominal > 0 && euros > 0 && Math.abs(nominal / euros - 1) <= 0.1);
+  });
+}
+
+export function salaryTimeline({pay,annualPrice}, geo, start, end) {
+  const first = Number(start), last = Number(end);
+  if (!(first > 0 && last >= first)) return [];
+  const basePay = observation(pay,'NAC',geo,first);
+  const basePrice = observation(annualPrice,'TOTAL',geo,first);
+  let payIssue = '', priceIssue = '', previousPayYear = first;
+  const baseAvailable = basePay[0] > 0 && basePrice[0] > 0;
+  return Array.from({length:last-first+1}, (_,offset) => {
+    const year = first + offset;
+    const payPoint = observation(pay,'NAC',geo,year);
+    const pricePoint = observation(annualPrice,'TOTAL',geo,year);
+    if (year > first) {
+      if (!payIssue && (seriesBreak(observation(pay,'NAC',geo,year-1),payPoint) || year === payMethodChanges[geo])) {
+        payIssue = 'Eurostat’s pay series changes in ' + year + '.';
+      }
+      if (!payIssue && payPoint[0] > 0 && salaryCurrencyChanges(pay,geo,previousPayYear,year)) {
+        payIssue = 'The pay figures cross a currency change in ' + year + '.';
+      }
+      if (!priceIssue && seriesBreak(observation(annualPrice,'TOTAL',geo,year-1),pricePoint)) {
+        priceIssue = 'The price series changes in ' + year + '.';
+      }
+    }
+    if (payPoint[0] > 0) previousPayYear = year;
+    const payIndex = baseAvailable && !payIssue && payPoint[0] > 0 ? 100 * (payPoint[0] / basePay[0]) : null;
+    const priceIndex = baseAvailable && !priceIssue && pricePoint[0] > 0 ? 100 * (pricePoint[0] / basePrice[0]) : null;
+    const realPay = payIndex !== null && priceIndex !== null ? 100 * (payIndex / priceIndex - 1) : null;
+    const issue = !baseAvailable ? 'Data are missing for the selected start year.' :
+      payIssue || priceIssue || (realPay === null ? 'Pay or price data are missing for this year.' : '');
+    return {year:String(year),payIndex,priceIndex,realPay,payPoint,pricePoint,issue};
+  });
+}
+
+export function sharedSalaryWindow(indicators, geos, through) {
+  const years = salaryYears(indicators).filter(year => !through || year <= through);
+  if (years.length < 2 || !geos.length) return null;
+  const comparable = (start,end) => geos.every(geo =>
+    salaryTimeline(indicators,geo,start,end).at(-1)?.realPay != null);
+  for (let end = years.length - 1; end > 0; end--) {
+    if (!comparable(years[end-1],years[end])) continue;
+    let start = end - 1;
+    while (start > 0 && comparable(years[start-1],years[start])) start--;
+    return {start:years[start],end:years[end]};
+  }
+  return null;
+}

@@ -2,10 +2,10 @@
 
 **What does a salary buy across Europe?** Explore official Eurostat figures for take-home pay, purchasing power, household spending, price levels, median disposable income, inflation, and whether household incomes grew faster than prices. The dashboard works with country selections and has no personal inputs.
 
-**[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and a worked spending example.
+**[Read the full methodology](docs/methodology.md)** for definitions, the exact Eurostat queries, and worked salary and spending examples.
 
-- Switch between EUR and Eurostat’s published PPS values to see how the annual take-home pay ranking changes.
-- Add countries directly from the results table and compare up to four side by side. Each indicator uses its own latest shared observation period.
+- **Are salaries keeping up with prices?** Start with Greece and compare take-home pay with consumer prices on the same scale. Pick your own years and add up to four countries.
+- **Where does a salary go furthest?** Rank countries by pay in purchasing power standards (PPS). The table shows pay in euros, local price levels and changes in pay after inflation.
 - Use **Income vs prices** to compare changes in median household income, consumer prices, and purchasing power for the same calendar year.
 - Explore what households spend, how prices compare with the EU-27 benchmark, and what has happened to inflation over time.
 - Sort and filter tables, download the current comparison as CSV, or open the source dataset from each view.

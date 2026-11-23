@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { definitions } from '../public/definitions.js';
-import { incomePriceChange, observation, spendingRecord } from '../public/model.js';
+import { incomePriceChange, observation, salaryTimeline, spendingRecord } from '../public/model.js';
 
 const snapshot = JSON.parse(await readFile(new URL('../public/snapshot.json',import.meta.url),'utf8'));
 const pairs = [
   ['pay','A.EUR+PPS.NET.P1_NCH_AW100.EL+DE+NL','currency',['2024','2025']],
+  ['pay','A.NAC.NET.P1_NCH_AW100.EL+BE','currency',['2023','2024','2025']],
+  ['annualPrice','A.INX_A_AVG.TOTAL.EL+BE','coicop18',['2023','2024','2025']],
   ['spend','A.CP_MEUR.TOTAL+CP01+CP04.EL+DE+FR','coicop18',['2023','2024']],
   ['price','A.PLI_EU27_2020.E011+A010101+A0104+A010405+A0107.EL+DE+EU27_2020','ppp_cat18',['2024','2025']],
   ['income','A.TOTAL.T.MED_EI.PPS.EL+DE+EU27_2020','unit',['2023','2024']],
@@ -57,4 +59,10 @@ console.log('Greece 2024 housing share:',housing.expenditure[0],'/ ',total[0],'Ã
 for (const geo of ['EL','RO','SK']) {
   const row = incomePriceChange(snapshot.indicators,geo,'2024');
   console.log('Income vs prices 2024',geo,JSON.stringify(row));
+}
+
+for (const [geo,start,end,expectedDirection] of [['EL','2024','2025',1],['BE','2024','2025',-1],['EL','2023','2025',null]]) {
+  const row = salaryTimeline(snapshot.indicators,geo,start,end).at(-1);
+  assert.equal(row.realPay === null ? null : Math.sign(row.realPay),expectedDirection);
+  console.log('Salary vs prices',geo,start,end,JSON.stringify(row));
 }
