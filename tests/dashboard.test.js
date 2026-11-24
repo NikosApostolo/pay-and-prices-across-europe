@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { benchmark, definitions, eu, spending } from '../public/definitions.js';
-import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, sharedSalaryWindow, spendingRecord } from '../public/model.js';
+import { choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, sharedSalaryWindow, spendingRecord, valueRanks } from '../public/model.js';
 import { decode, refreshSnapshot } from '../src/eurostat.js';
 import { createWorker, publishSnapshot } from '../src/worker.js';
 
@@ -58,10 +58,10 @@ test('flags survive parsing and confidential values stay blank', () => {
   assert.throws(() => decode(payload,definitions.pay),/filter mismatch/);
 });
 
-function sourceData(definition, revised = false) {
+function sourceData(definition, revised = false, includePayBenchmark = false) {
   const time = definition.filters.freq === 'M' ? ['2025-01','2025-02'] : ['2024','2025'];
   const dimensions = { ...definition.filters, geo:eu, time };
-  if (definition.dataset === 'prc_ppp_ind_1') dimensions.geo = [...eu,'EU27_2020'];
+  if (definition !== definitions.pay || includePayBenchmark) dimensions.geo = [...eu,benchmark];
   const id = Object.keys(dimensions);
   const size = Object.values(dimensions).map(codes => [codes].flat().length);
   const dimension = Object.fromEntries(Object.entries(dimensions).map(([key,codes]) =>
@@ -77,7 +77,7 @@ function sourceData(definition, revised = false) {
 function fakeFetch({ revised = false, failing } = {}) {
   return async url => {
     const definition = Object.values(definitions).find(row => new URL(url).pathname.endsWith('/' + row.dataset));
-    return definition.dataset === failing ? new Response('',{status:503}) : Response.json(sourceData(definition,revised));
+    return definition.dataset === failing ? new Response('',{status:503}) : Response.json(sourceData(definition,revised,true));
   };
 }
 function memoryStore() {
@@ -250,4 +250,36 @@ test('the EU salary benchmark uses published euro pay and EU prices with the sam
   delete indicators.pay.series.EUR[benchmark]['2025'];
   assert.equal(salaryTimeline(indicators,benchmark,'2024','2025').at(-1).realPay,null);
   assert.ok(salaryTimeline(indicators,'EL','2024','2025').at(-1).realPay > 0);
+});
+
+
+test('rankings give equal values the same rank and omit missing data', () => {
+  const rows = [['EL',[75,'']],['DE',[100,'']],['FR',[100,'p']],['AT',[null,'']]];
+  assert.deepEqual([...valueRanks(rows)],[['DE',1],['FR',1],['EL',3]]);
+});
+
+test('invalid denominators and missing calendar years do not yield misleading comparisons', () => {
+  const pay = {periods:['2024','2022'],series:{NAC:{EL:{2022:[100,''],2024:[120,'']}}}};
+  const annualPrice = {periods:['2024','2022'],series:{TOTAL:{EL:{2022:[100,''],2024:[105,'']}}}};
+  assert.equal(sharedSalaryWindow({pay,annualPrice},['EL']),null);
+  assert.equal(salaryTimeline({pay,annualPrice},'EL','2022','2024')[1].realPay,null);
+  assert.ok(salaryTimeline({pay,annualPrice},'EL','2022','2024')[2].realPay > 0);
+
+  const spend = {series:{TOTAL:{EL:{2024:[100,'']}},CP01:{EL:{2024:[101,'']}}}};
+  assert.equal(spendingRecord(spend,'EL','2024').categories[0].share,null);
+
+  const income = {series:{NAC:{EL:{2024:[100,''],2025:[0,'']}}}};
+  const result = incomePriceChange({income,annualPrice},'EL',2024);
+  assert.equal(result.value,null);
+  assert.equal(result.nominal,null);
+});
+
+test('snapshot validation rejects impossible index values and missing EU benchmarks', async () => {
+  const price = sourceData(definitions.price);
+  price.value[0] = 0;
+  assert.throws(() => decode(price,definitions.price),/out-of-range value/);
+  await assert.rejects(refreshSnapshot({fetcher:async url => {
+    if (new URL(url).pathname.endsWith('/earn_nt_net')) return Response.json(sourceData(definitions.pay));
+    return fakeFetch()(url);
+  }}),/no EU-27 benchmark/);
 });

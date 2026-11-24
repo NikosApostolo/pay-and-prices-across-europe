@@ -1,5 +1,5 @@
 import { benchmark, browserLink, countries, definitions, eu, prices, spending } from './definitions.js';
-import { available, choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, salaryYears, sharedSalaryWindow, spendingRecord } from './model.js';
+import { available, choosePeriod, csvText, flagsLabel, incomePriceChange, incomePriceYears, observation, periodsFor, salaryTimeline, salaryYears, sharedSalaryWindow, spendingRecord, valueRanks } from './model.js';
 
 const dashboard = document.querySelector('#dashboard');
 const methodologyLink = document.querySelector('.method-link').href;
@@ -139,8 +139,7 @@ function ranking(key) {
   const query = state.search.trim().toLowerCase();
   const rows = allRows.filter(([geo]) => countries[geo].toLowerCase().includes(query) || geo.toLowerCase() === query);
   const sort = state.sort[key] ?? { name:'value', direction:-1 };
-  const byValue = (a, b) => (b[1][0] ?? -Infinity) - (a[1][0] ?? -Infinity) || nameSort(a[0], b[0]);
-  const ranks = new Map(rows.filter(([, value]) => available(value)).sort(byValue).map(([geo], index) => [geo, index + 1]));
+  const ranks = valueRanks(allRows);
   rows.sort((a, b) => {
     if (sort.name === 'country') return sort.direction * nameSort(a[0], b[0]);
     if (!available(a[1]) || !available(b[1])) return Number(available(b[1])) - Number(available(a[1])) || nameSort(a[0], b[0]);
@@ -156,12 +155,12 @@ function ranking(key) {
     <div class="controls">${scopeControl()}${select(key === 'income' ? 'Survey year' : 'Year','period',periodOptions(periods),state.periods[key] ?? '')}${extra}</div>
     ${coverageNote(result, geos, periods[0])}
     ${meta(key, periodText(period), key === 'income' ? 'Buying power per year' : unit, covered, rows.length, key === 'income' ? 'Survey year ' : '')}
-    ${key === 'income' ? '<p class="survey-note">The survey usually reports what people earned or received the year before.</p>' : ''}
+    ${key === 'income' ? '<p class="survey-note">Most surveys report income from the previous calendar year. Older results from the UK and Ireland used different periods.</p>' : ''}
     ${selectionBar()}
     <div class="grid"><div class="subpanel"><h3>Country table</h3><div class="table-tools">
     <input class="search" id="search" type="search" placeholder="Find a country" aria-label="Find a country" value="${escape(state.search)}">${exportButton()}</div>
     <div class="table-scroll ranking" data-scroll="countries" tabindex="0" role="region" aria-label="Sortable country comparison">
-    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Prices (EU = 100)' : 'Buying power',sort)}<th scope="col">Compare</th></tr></thead>
+    <table aria-label="${escape(ranksTitle)}"><thead><tr><th scope="col" title="Rank within the selected country scope">Rank</th>${sortHeader(key,'country','Country',sort)}${sortHeader(key,'value',kind === 'price' ? 'Prices (EU = 100)' : 'Buying power',sort)}<th scope="col">Compare</th></tr></thead>
     <tbody>${rows.map(([geo, value]) => `<tr><td>${ranks.get(geo) ?? '—'}</td><th scope="row">${countries[geo]}</th><td class="right">${cell(kind,value)}</td><td>${addFromRow(geo)}</td></tr>`).join('') || '<tr><td colspan="4">No countries match this search.</td></tr>'}</tbody></table></div></div>
     <figure class="subpanel"><figcaption><h3>${ranksTitle}</h3></figcaption>
     ${benchmarkReading(kind,ref)}
@@ -214,8 +213,8 @@ function comparison() {
     state.picks.flatMap(geo => items.map(({key,code,title,kind,period,observe}) =>
       [countries[geo],geo,title,code,period,unitNames[kind],...observe(geo,period),definitions[key].dataset])));
   const hasGaps = items.some(({period,observe}) => state.picks.some(geo => !available(observe(geo,period))));
-  const comparisonRows = items.map(({title,kind,period,observe}) => [
-    title + ' · ' + periodText(period), ...state.picks.map(geo => cell(kind,observe(geo,period))),
+  const comparisonRows = items.map(({key,title,kind,period,observe}) => [
+    title + ' · ' + (key === 'income' && period ? 'survey year ' : '') + periodText(period), ...state.picks.map(geo => cell(kind,observe(geo,period))),
   ]);
   return `<section class="panel">${heading('Compare countries side by side','Compare up to four countries. Each row gives the latest figures available for all those countries when possible.')}
     ${picker()}
@@ -572,7 +571,7 @@ function salaryTrends() {
           <span class="pay-reading">Take-home pay ${cell('price',[point.payIndex,point.payPoint[1]])}</span>
           <span class="price-reading">Consumer prices ${cell('price',[point.priceIndex,point.pricePoint[1]])}</span>
           ${point.issue ? `<p class="missing">${escape(point.issue)}</p>` : ''}</div>` : ''}
-        ${geo === benchmark ? '<p class="salary-coverage salary-benchmark-note">EU-27 pay is measured in euros. Countries with more workers count more in the EU average.</p>' : ''}
+        ${geo === benchmark ? '<p class="salary-coverage salary-benchmark-note">Eurostat weights EU-27 pay by the number of workers in each country. Exchange rates can also affect the EU figure.</p>' : ''}
         </figure>`;
     }).join('')}</div>
     <p class="definition"><a href="${browserLink(definitions.pay.dataset)}">Eurostat take-home pay</a> · <a href="${browserLink(definitions.annualPrice.dataset)}">Eurostat annual prices</a> · <a href="${methodologyLink}#salaries-vs-prices">Methodology</a></p>

@@ -28,12 +28,13 @@ Open [localhost:8000](http://localhost:8000). The repository includes a validate
 | `npm start` | Serves the dashboard and the local snapshot. Use `PORT=8080 npm start` to choose a different port. |
 | `npm run refresh` | Fetches the full filtered history and atomically replaces the local snapshot after validation. |
 | `npm test` | Tests the comparison rules, flags, missing values, revisions and failed refreshes. |
+| `node scripts/audit-data.mjs` | Checks every published observation and flag against Eurostat’s TSV export and recalculates spending, pay and income measures. Pass a snapshot URL to check the live site. |
 | `node scripts/crosscheck.mjs` | Compares selected cells against Eurostat’s tab-separated Data Browser export format. Refresh first if Eurostat has released revisions since the local snapshot. |
 | `npm run build` | Generates a deployable Worker and copies the hosting manifest into `dist`. |
 
 ## Daily refresh
 
-**Public dashboard.** GitHub Actions runs **Refresh and publish dashboard** daily at 11:37 UTC, on pushes to `main`, and on manual runs started under **Actions**. It fetches the full filtered history from Eurostat, validates it, runs the checks, saves the snapshot and publishes the static files to GitHub Pages. If preparation fails, the workflow logs the error and the previous live snapshot stays available. The public site serves files and has no manual refresh route. Manual runs use the repository’s access controls.
+**Public dashboard.** GitHub Actions runs **Refresh and publish dashboard** daily at 11:37 UTC, on pushes to `main`, and on manual runs started under **Actions**. It fetches the full filtered history from Eurostat, validates it, cross-checks the published values and flags against Eurostat’s TSV export, saves the snapshot and publishes the static files to GitHub Pages. If preparation fails, the workflow logs the error and the previous live snapshot stays available. The public site serves files and has no manual refresh route. Manual runs use the repository’s access controls.
 
 To deploy a fork, choose **Settings → Pages → Build and deployment → Source → GitHub Actions** and run the workflow from the fork’s default branch. If you use another default branch, update the branch references in `.github/workflows/refresh.yml`. The workflow needs permission to commit the snapshot and deploy Pages.
 

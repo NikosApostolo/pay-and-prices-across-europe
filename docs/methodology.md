@@ -34,7 +34,7 @@ These are the requests used to build and refresh the snapshot. The repeated filt
 
 The initial ranking shows all 27 EU members. The broader scope includes European reporters with at least one published observation in the selected series. The EU aggregate is `EU27_2020`, and Greece uses Eurostat’s code `EL`. The filter matches exact countries, so other aggregates and non-European comparison countries do not enter rankings.
 
-Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`.
+Each comparison defaults to the newest period with data for every country in scope. If there is no shared period, the dashboard shows the newest period with any selected observation and identifies gaps. Users can select a newer or earlier period when it exists in the source. Where a table displays ranks, they apply to the selected scope and year, so searching for a country leaves its rank intact. Equal values share a rank. Blank and confidential values do not enter rankings or CSV value fields. The app preserves raw flags and displays their meanings. The [Eurostat flag guide](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Tutorial:Symbols_and_abbreviations) defines common flags such as `b`, `e`, `p` and `c`.
 
 ## Salaries vs prices
 
@@ -94,7 +94,13 @@ Eurostat published €38,270.1 million in spending on housing, water, electricit
 
 ## Refreshes and revisions
 
-The daily refresh requests the complete filtered history so it can pick up new periods and changes Eurostat makes to older observations. After validating the filters, units, data and coverage, the scheduled GitHub Actions workflow publishes the snapshot with the public dashboard. A failed run is recorded in the workflow log and leaves the previous deployment available. The footer shows the latest period with published figures for each topic and the last successful refresh. Each chart shows the period used for that comparison, and its details give Eurostat’s own source update time.
+The daily refresh requests the complete filtered history so it can pick up new periods and changes Eurostat makes to older observations. The scheduled GitHub Actions workflow validates filters, units, value ranges and coverage, including the published EU-27 benchmarks. It compares every observation and flag against Eurostat’s TSV export before publishing a new snapshot. A failed run is recorded in the workflow log and leaves the previous deployment available. The footer shows the latest period with published figures for each topic and the last successful refresh. Each chart shows the period used for that comparison, and its details give Eurostat’s own source update time.
+
+## Full data audit
+
+The public snapshot checked on 24 November 2026 contained 34,611 published observations across the six Eurostat datasets. Every value and flag matched the corresponding cell in Eurostat’s TSV export. The same check recalculated 13,845 spending shares, 7,252 pay comparisons across year pairs and 603 annual household income comparisons. The calculation checks compare equivalent formulas and the test suite covers missing values, changes in currency, flagged breaks, rankings and refresh failures.
+
+Run `node scripts/audit-data.mjs` to repeat the check on the repository snapshot, or pass the public `snapshot.json` URL to check the live site.
 
 ## Initial verification
 

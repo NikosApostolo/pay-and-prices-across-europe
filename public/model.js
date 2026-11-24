@@ -3,6 +3,16 @@ import { benchmark, spending } from './definitions.js';
 export const observation = (indicator, series, geo, period) => indicator?.series[series]?.[geo]?.[period] ?? [null, ''];
 export const available = ([value]) => Number.isFinite(value);
 
+export function valueRanks(rows) {
+  const sorted = rows.filter(([, point]) => available(point)).sort((a,b) => b[1][0] - a[1][0]);
+  let previous, rank;
+  return new Map(sorted.map(([geo,[value]],index) => {
+    if (value !== previous) rank = index + 1;
+    previous = value;
+    return [geo,rank];
+  }));
+}
+
 export function periodsFor(indicator, read, geos) {
   return indicator.periods.filter(period => geos.some(geo => available(read(geo, period))));
 }
@@ -20,7 +30,8 @@ export function spendingRecord(indicator, geo, period) {
   const total = observation(indicator, 'TOTAL', geo, period);
   const categories = Object.keys(spending).map(code => {
     const expenditure = observation(indicator, code, geo, period);
-    const share = available(expenditure) && total[0] > 0 ? 100 * expenditure[0] / total[0] : null;
+    const share = available(expenditure) && expenditure[0] >= 0 && total[0] > 0 && expenditure[0] <= total[0]
+      ? 100 * expenditure[0] / total[0] : null;
     return { code, expenditure, share };
   });
   const known = categories.filter(row => row.share !== null);
@@ -82,13 +93,15 @@ export function incomePriceChange({income,annualPrice}, geo, year) {
   const rate = (previous,current) => 100 * (current / previous - 1);
 
   let incomeIssue = '';
-  if (incomeYear < firstSilcSurvey) {
+  if (!Number.isInteger(incomeYear)) {
+    incomeIssue = 'Choose a year to compare income and prices.';
+  } else if (incomeYear < firstSilcSurvey) {
     incomeIssue = 'The earlier survey predates the EU-SILC periods used here.';
   } else if (geo === 'UK' || (geo === 'IE' && incomeYear < 2020)) {
     incomeIssue = 'The income survey used a rolling period that cannot be matched to a calendar year.';
   } else if (seriesBreak(priorIncome,nextIncome)) {
     incomeIssue = 'A break in the income series prevents comparing these years.';
-  } else if (!(priorIncome[0] > 0) || !available(nextIncome)) {
+  } else if (!(priorIncome[0] > 0 && nextIncome[0] > 0)) {
     incomeIssue = 'Income data are missing for one or both years.';
   } else if (!sameIncomeCurrency(income,geo,surveyYear,priorIncome,nextIncome)) {
     incomeIssue = 'These income figures cannot be verified on the same currency basis.';
@@ -128,7 +141,7 @@ function salaryCurrencyChanges(pay, geo, previous, year) {
 
 export function salaryTimeline({pay,annualPrice}, geo, start, end) {
   const first = Number(start), last = Number(end);
-  if (!(first > 0 && last >= first)) return [];
+  if (!Number.isInteger(first) || !Number.isInteger(last) || first <= 0 || last < first) return [];
   const payUnit = geo === benchmark ? 'EUR' : 'NAC';
   const basePay = observation(pay,payUnit,geo,first);
   const basePrice = observation(annualPrice,'TOTAL',geo,first);
@@ -162,7 +175,7 @@ export function salaryTimeline({pay,annualPrice}, geo, start, end) {
 export function sharedSalaryWindow(indicators, geos, through) {
   const years = salaryYears(indicators).filter(year => !through || year <= through);
   if (years.length < 2 || !geos.length) return null;
-  const comparable = (start,end) => geos.every(geo =>
+  const comparable = (start,end) => Number(end) - Number(start) === 1 && geos.every(geo =>
     salaryTimeline(indicators,geo,start,end).at(-1)?.realPay != null);
   for (let end = years.length - 1; end > 0; end--) {
     if (!comparable(years[end-1],years[end])) continue;

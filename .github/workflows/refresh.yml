@@ -31,6 +31,8 @@ jobs:
       - name: Fetch and validate the full Eurostat history
         run: npm run refresh
       - run: npm test
+      - name: Cross-check all values against Eurostat’s TSV export
+        run: node scripts/audit-data.mjs
       - name: Save the validated snapshot
         run: |
           git config user.name 'github-actions[bot]'
